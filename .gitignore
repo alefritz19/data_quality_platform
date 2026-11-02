@@ -1,0 +1,33 @@
+# Umgebungsvariablen und Zugangsdaten (niemals committen)
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Datenverzeichnisse und DuckDB-Dateien
+data/*/*
+!data/*/.gitkeep
+*.duckdb
+*.duckdb.wal
+*.parquet
+
+# Logs und Dagster-Laufzeitdaten
+logs/*
+!logs/.gitkeep
+.dagster/
+dagster_home/
+
+# Python und virtuelle Umgebungen
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# Editor und Betriebssystem
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
