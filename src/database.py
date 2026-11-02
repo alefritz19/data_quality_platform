@@ -126,6 +126,22 @@ def init_database(config: Optional[AppConfig] = None) -> None:
             );
             """
         )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS metadata.export_packages (
+                package_id VARCHAR PRIMARY KEY,
+                table_name VARCHAR NOT NULL,
+                parquet_path VARCHAR NOT NULL,
+                report_path VARCHAR NOT NULL,
+                bundle_zip_path VARCHAR NOT NULL,
+                size_bytes BIGINT NOT NULL,
+                created_at TIMESTAMP NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                is_deleted BOOLEAN NOT NULL
+            );
+            """
+        )
     finally:
         conn.close()
 

@@ -20,6 +20,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from src.config import load_config
 from src.database import get_connection, init_database
+from src.export_manager import create_export_package, get_export_storage_status
 from src.file_converter import process_inbox
 from src.final_gate import run_final_gate_all
 from src.ingest_source import fetch_smard_raw_data
@@ -81,6 +82,7 @@ with st.sidebar:
             "3. Nicht verarbeitbar",
             "4. Freigegebene Mart-Daten & Diagramme",
             "5. Regelbasierter Qualitätsbericht",
+            "6. Bereitstellung & Download fertiger Daten",
         ],
     )
 
@@ -436,3 +438,87 @@ elif selected_section.startswith("5."):
     st.subheader("Regelbasierter Qualitätsbericht mit nachvollziehbaren Empfehlungen")
     rep = build_quality_report(cfg)
     st.markdown(str(rep["markdown"]))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ANSICHT 6: BEREITSTELLUNG & DOWNLOAD FERTIGER DATEN
+# ══════════════════════════════════════════════════════════════════════════════
+elif selected_section.startswith("6."):
+    st.subheader("Temporäre Bereitstellung fertiger Parquet-Daten & Berichte (`data/export`)")
+    export_status = get_export_storage_status(cfg)
+
+    e1, e2, e3 = st.columns(3)
+    e1.metric("Aktive Exportpakete", f"{export_status['active_packages_count']}")
+    e2.metric(
+        "Belegter Exportspeicher",
+        f"{export_status['used_mb']:.2f} / {export_status['max_mb']} MB",
+    )
+    e3.metric(
+        "Automatische Löschfrist (TTL)",
+        f"{export_status['retention_hours']} Stunden",
+    )
+
+    st.markdown("---")
+    if not mart_tables:
+        st.warning("Keine freigegebenen Tabellen im Schema `mart` zum Exportieren verfügbar.")
+    else:
+        exp_table = st.selectbox("Freigegebene Mart-Tabelle für den Export wählen:", mart_tables)
+        df_cols_preview = fetch_dataframe(f"SELECT * FROM mart.{exp_table} LIMIT 1;")
+        available_cols = df_cols_preview.columns.tolist() if not df_cols_preview.empty else []
+        chosen_cols = st.multiselect(
+            "Gewünschte Spalten auswählen (leer lassen für alle Spalten):",
+            options=available_cols,
+            default=available_cols,
+        )
+
+        if st.button("Versandfertiges Paket (Parquet + Bericht) erzeugen"):
+            pkg = create_export_package(
+                short_table_name=exp_table,
+                selected_columns=chosen_cols if chosen_cols else None,
+                config=cfg,
+            )
+            st.success(
+                f"Paket `{pkg['package_id']}` erstellt (gültig bis {pkg['expires_at']})."
+            )
+            export_status = get_export_storage_status(cfg)
+
+    st.markdown("#### Aktuell verfügbare Download-Pakete")
+    packages = export_status.get("packages", [])
+    if not packages:
+        st.info("Noch keine Exportpakete im temporären Bereich vorhanden.")
+    else:
+        for pkg in packages:
+            pq_file = Path(str(pkg["parquet_path"]))
+            rep_file = Path(str(pkg["report_path"]))
+            zip_file = Path(str(pkg["bundle_zip_path"]))
+            with st.expander(
+                f"📦 {pkg['package_id']} | Tabelle: {pkg['table_name']} | "
+                f"Größe: {int(pkg['size_bytes']) / 1024:.1f} KB | "
+                f"Löschung am: {pkg['expires_at']}",
+                expanded=True,
+            ):
+                d1, d2, d3 = st.columns(3)
+                if pq_file.exists():
+                    d1.download_button(
+                        label="⬇️ Parquet-Datei herunterladen",
+                        data=pq_file.read_bytes(),
+                        file_name=pq_file.name,
+                        mime="application/octet-stream",
+                        key=f"dl_pq_{pkg['package_id']}",
+                    )
+                if rep_file.exists():
+                    d2.download_button(
+                        label="⬇️ Qualitätsbericht (.md) herunterladen",
+                        data=rep_file.read_bytes(),
+                        file_name=rep_file.name,
+                        mime="text/markdown",
+                        key=f"dl_md_{pkg['package_id']}",
+                    )
+                if zip_file.exists():
+                    d3.download_button(
+                        label="⬇️ Komplettpaket (.zip) herunterladen",
+                        data=zip_file.read_bytes(),
+                        file_name=zip_file.name,
+                        mime="application/zip",
+                        key=f"dl_zip_{pkg['package_id']}",
+                    )

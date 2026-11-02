@@ -44,7 +44,8 @@ data_quality_platform/
 * [x] **Schritt 7:** Dagster: Assets, Asset Checks, Schedules, Sensor für den Eingangsordner
 * [x] **Schritt 8:** Streamlit: KPI-Karten, Tabellen, wählbare Diagramme (`dashboard/app.py`)
 * [x] **Schritt 9:** Regelbasierter Bericht mit konkreten Empfehlungen (`src/report_generator.py`)
-* [ ] **Schritt 10:** Bereitstellung fertiger Daten (Download, temporäre Aufbewahrung)
+* [x] **Schritt 10:** Bereitstellung fertiger Daten (Download, TTL-Auto-Löschung und Speicherlimits)
+* [ ] **Schritt 11:** Demo- und Prod-Kontur (`docker-compose.prod.yml`, `docker-compose.demo.yml`, Limits, Schreibschutz)
 
 ## Angebundene Datenquellen (`metadata.quellen`)
 

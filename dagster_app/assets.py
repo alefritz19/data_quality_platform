@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, List
 from dagster import AssetExecutionContext, MetadataValue, Output, asset
 from src.config import load_config
+from src.export_manager import cleanup_expired_exports
 from src.file_converter import process_inbox
 from src.final_gate import run_final_gate_all
 from src.ingest_source import fetch_smard_raw_data
@@ -151,12 +152,14 @@ def verified_mart_tables(
 def quality_report(
     context: AssetExecutionContext,
 ) -> Output[Dict[str, object]]:
-    """Erzeugt den regelbasierten Qualitätsbericht mit konkreten Empfehlungen."""
+    """Erzeugt den regelbasierten Qualitätsbericht und bereinigt abgelaufene Exporte."""
     cfg = load_config()
+    cleanup_info = cleanup_expired_exports(cfg)
     report = build_quality_report(cfg)
     context.log.info(
         f"Bericht erstellt: {report['report_md_path']} "
-        f"({report['recommendations_count']} Empfehlungen)."
+        f"({report['recommendations_count']} Empfehlungen). "
+        f"Export-Bereinigung: {cleanup_info}"
     )
     return Output(
         value=report,
