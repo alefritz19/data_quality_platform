@@ -244,38 +244,47 @@ def build_column_transparency_table(
 cfg = load_config()
 init_database(cfg)
 
-# ── OBERE STEUERLEISTE (WIE SEITENMENÜ: SPRACHE DE/EN & FARBTON HELL/DUNKEL) ─
+# ── FIXIERTE EINZEILIGE KOPFLEISTE (STICKY TOP-BAR, BEWEGT SICH NICHT) ───────
+T = TEXTS[st.session_state["ui_lang"]]
 top_bar = st.container()
 with top_bar:
-    tb1, tb2, tb3 = st.columns([2.2, 1.0, 1.1])
-    with tb2:
-        lang_choice = st.radio(
-            "🌐 Sprache / Language",
-            options=["DE", "EN"],
-            index=0 if st.session_state["ui_lang"] == "DE" else 1,
-            horizontal=True,
-            key="lang_radio",
-        )
-        st.session_state["ui_lang"] = lang_choice
-    T = TEXTS[st.session_state["ui_lang"]]
-    with tb3:
-        theme_choice = st.radio(
-            f"🎨 {T['top_theme']}",
-            options=["LIGHT", "DARK"],
-            format_func=lambda x: T["theme_light"] if x == "LIGHT" else T["theme_dark"],
-            index=0 if st.session_state["ui_theme"] == "LIGHT" else 1,
-            horizontal=True,
-            key="theme_radio",
-        )
-        st.session_state["ui_theme"] = theme_choice
+    tb1, tb2, tb3 = st.columns([3.0, 0.9, 1.3], vertical_alignment="center")
     with tb1:
         st.markdown(
-            f"**{T['sidebar_title']}** &nbsp;|&nbsp; "
-            f"Umgebung: `{cfg.app_env.upper()}` &nbsp;·&nbsp; "
-            f"Engine: `DuckDB + Parquet (ZSTD)` &nbsp;·&nbsp; "
-            f"Quellen: `SMARD.de & DWD 01420`"
+            f"<div class='top-bar-info'><b>{T['sidebar_title']}</b> &nbsp;|&nbsp; "
+            f"Umgebung: <code>{cfg.app_env.upper()}</code> &nbsp;·&nbsp; "
+            f"Engine: <code>DuckDB + Parquet</code> &nbsp;·&nbsp; "
+            f"Quellen: <code>SMARD.de & DWD 01420</code></div>",
+            unsafe_allow_html=True,
         )
+    with tb2:
+        lang_choice = st.radio(
+            "Sprache",
+            options=["DE", "EN"],
+            format_func=lambda x: f"🌐 {x}",
+            index=0 if st.session_state["ui_lang"] == "DE" else 1,
+            horizontal=True,
+            label_visibility="collapsed",
+            key="lang_radio",
+        )
+        if lang_choice != st.session_state["ui_lang"]:
+            st.session_state["ui_lang"] = lang_choice
+            st.rerun()
+    with tb3:
+        theme_choice = st.radio(
+            "Farbton",
+            options=["LIGHT", "DARK"],
+            format_func=lambda x: "☀️ Hell" if x == "LIGHT" else "🌙 Dunkel",
+            index=0 if st.session_state["ui_theme"] == "LIGHT" else 1,
+            horizontal=True,
+            label_visibility="collapsed",
+            key="theme_radio",
+        )
+        if theme_choice != st.session_state["ui_theme"]:
+            st.session_state["ui_theme"] = theme_choice
+            st.rerun()
 
+T = TEXTS[st.session_state["ui_lang"]]
 is_dark = st.session_state["ui_theme"] == "DARK"
 plotly_tpl = "plotly_dark" if is_dark else "plotly_white"
 chart_paper_bg = "#162234" if is_dark else "#FFFFFF"
@@ -286,19 +295,44 @@ if not is_dark:
     st.markdown(
         """
         <style>
+            /* Standard-Streamlit-Kopfzeile ausblenden, damit die einzeilige Leiste ganz oben sitzt */
+            [data-testid="stHeader"] {
+                display: none !important;
+            }
+            .block-container {
+                padding-top: 0.6rem !important;
+            }
             /* Haupthintergrund: klares Weiß */
-            .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+            .stApp, [data-testid="stAppViewContainer"] {
                 background-color: #FFFFFF !important;
                 color: #2B3E54 !important;
             }
-            /* Obere Steuerleiste optisch passend zum linken Menü */
-            div[data-testid="stVerticalBlock"] > div:first-child > div[data-testid="stVerticalBlockBorderWrapper"],
+            /* Fixierte (sticky) einzeilige obere Leiste in derselben Farbe wie das Seitenmenü */
             div[data-testid="stHorizontalBlock"]:first-of-type {
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 999 !important;
                 background-color: #E8F2FC !important;
-                border: 1px solid #CBE0F5 !important;
-                border-radius: 8px !important;
-                padding: 8px 14px !important;
-                margin-bottom: 10px !important;
+                border-bottom: 1px solid #CBE0F5 !important;
+                border-radius: 0px !important;
+                padding: 6px 18px !important;
+                margin-left: -1rem !important;
+                margin-right: -1rem !important;
+                margin-bottom: 14px !important;
+                align-items: center !important;
+                min-height: 44px !important;
+            }
+            .top-bar-info {
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                color: #2C4866 !important;
+                font-size: 0.92rem !important;
+                line-height: 1.4 !important;
+            }
+            div[data-testid="stHorizontalBlock"]:first-of-type [data-testid="stRadio"] > div {
+                justify-content: flex-end !important;
+                flex-wrap: nowrap !important;
             }
             /* Linke Seitenleiste: sanftes Hellblau */
             [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {
@@ -409,17 +443,65 @@ else:
     st.markdown(
         """
         <style>
-            /* Dunkles Zweifarben-Schema: ruhiges Schieferblau & sanftes Eisblau */
-            .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-                background-color: #121D2B !important;
-                color: #DCE7F3 !important;
+            /* Dunkles Zweifarben-Schema: ruhiges Schieferblau & reinweiße Schrift */
+            [data-testid="stHeader"] {
+                display: none !important;
             }
+            .block-container {
+                padding-top: 0.6rem !important;
+            }
+            .stApp, [data-testid="stAppViewContainer"] {
+                background-color: #121D2B !important;
+                color: #FFFFFF !important;
+            }
+            /* Alle Textelemente, Labels, Radio-Optionen, Checkboxen und Captions im Dunkelmodus weiß */
+            .stApp p,
+            .stApp span,
+            .stApp label,
+            .stApp div,
+            .stApp li,
+            [data-testid="stMarkdownContainer"] p,
+            [data-testid="stMarkdownContainer"] li,
+            [data-testid="stCaptionContainer"] p,
+            [data-testid="stWidgetLabel"] p,
+            [data-testid="stRadio"] label p,
+            [data-testid="stRadio"] label span,
+            [data-testid="stCheckbox"] label p,
+            [data-testid="stCheckbox"] label span {
+                color: #F8FAFC !important;
+            }
+            /* Inline-Code-Tags im Dunkelmodus */
+            code {
+                background-color: #243852 !important;
+                color: #E2F0FF !important;
+                border: 1px solid #365275 !important;
+            }
+            /* Fixierte (sticky) einzeilige obere Leiste */
             div[data-testid="stHorizontalBlock"]:first-of-type {
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 999 !important;
                 background-color: #19283B !important;
-                border: 1px solid #2A405C !important;
-                border-radius: 8px !important;
-                padding: 8px 14px !important;
-                margin-bottom: 10px !important;
+                border-bottom: 1px solid #2A405C !important;
+                border-radius: 0px !important;
+                padding: 6px 18px !important;
+                margin-left: -1rem !important;
+                margin-right: -1rem !important;
+                margin-bottom: 14px !important;
+                align-items: center !important;
+                min-height: 44px !important;
+            }
+            .top-bar-info, .top-bar-info b {
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                color: #FFFFFF !important;
+                font-size: 0.92rem !important;
+                line-height: 1.4 !important;
+            }
+            div[data-testid="stHorizontalBlock"]:first-of-type [data-testid="stRadio"] > div {
+                justify-content: flex-end !important;
+                flex-wrap: nowrap !important;
             }
             [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {
                 background-color: #19283B !important;
@@ -430,11 +512,12 @@ else:
             [data-testid="stSidebar"] h3,
             [data-testid="stSidebar"] h4,
             [data-testid="stSidebar"] label,
-            [data-testid="stSidebar"] .stMarkdown p {
-                color: #DCE7F3 !important;
+            [data-testid="stSidebar"] p,
+            [data-testid="stSidebar"] span {
+                color: #FFFFFF !important;
             }
             h1, h2, h3, h4 {
-                color: #DCE7F3 !important;
+                color: #FFFFFF !important;
                 font-weight: 500 !important;
             }
             [data-testid="stMetric"] {
@@ -443,19 +526,37 @@ else:
                 border-radius: 8px !important;
                 padding: 12px 14px !important;
             }
-            [data-testid="stMetricLabel"] {
-                color: #A8C2DE !important;
+            [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] p {
+                color: #E2EEFF !important;
                 font-weight: 500 !important;
             }
-            [data-testid="stMetricValue"] {
-                color: #ECF3FA !important;
+            [data-testid="stMetricValue"], [data-testid="stMetricValue"] div {
+                color: #FFFFFF !important;
                 font-weight: 500 !important;
             }
-            [data-testid="stMetricDelta"] {
+            [data-testid="stMetricDelta"], [data-testid="stMetricDelta"] div {
                 background-color: #223752 !important;
-                color: #9EC5EB !important;
+                color: #CBE4FF !important;
                 border-radius: 5px !important;
                 padding: 2px 6px !important;
+            }
+            /* Auswahlfelder (Selectbox / Multiselect) & Datei-Upload im Dunkelmodus */
+            div[data-baseweb="select"] > div {
+                background-color: #1E3047 !important;
+                border-color: #365275 !important;
+                color: #FFFFFF !important;
+            }
+            [data-testid="stFileUploader"] section {
+                background-color: #1E3047 !important;
+                border-color: #365275 !important;
+                color: #FFFFFF !important;
+            }
+            [data-testid="stFileUploader"] button,
+            [data-testid="stDownloadButton"] > button {
+                background-color: #263C59 !important;
+                color: #FFFFFF !important;
+                border: 1px solid #4A86C5 !important;
+                border-radius: 6px !important;
             }
             span[data-baseweb="tag"] {
                 background-color: #3D73AD !important;
@@ -476,6 +577,11 @@ else:
             [data-testid="stSidebar"] .stButton > button span {
                 color: #FFFFFF !important;
             }
+            [data-testid="stAlert"] {
+                background-color: #1C2E44 !important;
+                color: #FFFFFF !important;
+                border: 1px solid #345278 !important;
+            }
         </style>
         """,
         unsafe_allow_html=True,
@@ -483,10 +589,6 @@ else:
 
 # ── SEITENLEISTE: KONTEXT, NAVIGATION & GESCHÜTZTE AKTIONEN ──────────────────
 with st.sidebar:
-    st.markdown(f"### {T['sidebar_title']}")
-    st.caption(f"Umgebung: `{cfg.app_env.upper()}` | Engine: `DuckDB + Parquet`")
-    st.markdown("---")
-
     selected_section = st.radio(
         T["nav_label"],
         [
