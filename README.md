@@ -1,6 +1,8 @@
-﻿# Transparente Plattform für Datenqualität und Parquet-Verarbeitung
+# Transparente Plattform für Datenqualität und Parquet-Verarbeitung
 
 Technische Anwendung zur Dateiannahme, Parquet-Konvertierung (ZSTD) und mehrstufigen Qualitätsprüfung realer, öffentlicher Datensätze mit Python, DuckDB, Dagster und Streamlit.
+
+* **Live-Demo (schreibgeschützt):** [http://89.168.112.220:8503](http://89.168.112.220:8503)
 
 Der Fokus des Projekts liegt auf Nachvollziehbarkeit: Daten werden beim Einlesen nicht stillschweigend verändert oder gelöscht. Stattdessen werden Konvertierungskennzahlen, erkannte Lücken, statistische Auffälligkeiten und nicht verarbeitbare Einträge mit Quelle, Spalte und Ursache in DuckDB-Metadatentabellen protokolliert.
 
