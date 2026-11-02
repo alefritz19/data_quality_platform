@@ -41,7 +41,8 @@ data_quality_platform/
 * [x] **Schritt 4:** Staging mit DuckDB (`staging` + Protokollierung nicht konvertierbarer Werte)
 * [x] **Schritt 5:** Qualitätsprüfungen und `metadata.quality_log` (inkl. Abschnitt „Nicht verarbeitbar“)
 * [x] **Schritt 6:** Abschließende Prüfung vor der Visualisierung (`final_gate` → `mart`)
-* [ ] **Schritt 7:** Dagster: Assets, Asset Checks, Sensor für den Eingangsordner
+* [x] **Schritt 7:** Dagster: Assets, Asset Checks, Schedules, Sensor für den Eingangsordner
+* [ ] **Schritt 8:** Streamlit: KPIs, Tabellen, wählbare Diagramme
 
 ## Angebundene Datenquellen (`metadata.quellen`)
 
