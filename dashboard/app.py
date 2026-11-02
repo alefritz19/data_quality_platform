@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 Streamlit-Anwendung der Plattform für Datenqualität.
-Zeigt ausschließlich geprüfte Daten aus dem Schema 'mart' sowie nachvollziehbare
-Protokolle aus 'metadata' (Quellen, Parquet-Konvertierung, Qualitätsprüfungen,
-Gatekeeper-Freigabe und Abschnitt 'Nicht verarbeitbar').
+Fokus auf 100 % Transparenz: Wählbare KPI-Karten, strukturierte Spalten- und
+Aggregations-Tabellen, Einzelzeilen-Filter für Lücken und Anomalien sowie
+kombinierte Diagramm-Tabellen-Ansichten auf geprüften 'mart'-Daten.
 """
 
 import sys
 from pathlib import Path
 from typing import List
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -28,6 +29,8 @@ from src.ingest_source import fetch_all_public_sources
 from src.quality_checks import run_all_staging_quality_checks
 from src.report_generator import build_quality_report
 from src.staging_loader import stage_all_parquet_files
+
+TECHNICAL_ID_COLUMNS = {"timestamp_ms", "dwd_station_id", "row_index", "id"}
 
 st.set_page_config(
     page_title="Plattform für Datenqualität | DuckDB · Parquet · Dagster",
@@ -66,6 +69,94 @@ def list_mart_tables() -> List[str]:
     return df["table_name"].tolist()
 
 
+def build_column_transparency_table(
+    df_mart: pd.DataFrame,
+    table_name: str,
+    df_quality: pd.DataFrame,
+    df_ml_flags: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Erzeugt den vollständigen Spalten-Steckbrief (Transparenz-Matrix) für eine Tabelle:
+    Datentyp, Gesamtzeilen, gültige Werte, fehlende Werte, Vollständigkeit (%),
+    Min, Median, Durchschnitt, Max, Summe sowie Anzahl der Qualitäts- und ML-Befunde.
+    """
+    total_rows = len(df_mart)
+    staging_name = f"staging.{table_name}"
+    rows = []
+
+    for col in df_mart.columns:
+        series = df_mart[col]
+        if pd.api.types.is_string_dtype(series) or series.dtype == object:
+            missing_cnt = int((series.isna() | (series.astype(str).str.strip() == "")).sum())
+        else:
+            missing_cnt = int(series.isna().sum())
+
+        valid_cnt = total_rows - missing_cnt
+        completeness_pct = round((valid_cnt / total_rows) * 100.0, 2) if total_rows > 0 else 0.0
+
+        is_num = (
+            pd.api.types.is_numeric_dtype(series)
+            and not pd.api.types.is_bool_dtype(series)
+            and col.lower() not in TECHNICAL_ID_COLUMNS
+        )
+        clean_num = series.dropna().astype(float) if is_num else pd.Series(dtype=float)
+
+        min_val = round(float(clean_num.min()), 3) if len(clean_num) > 0 else None
+        med_val = round(float(clean_num.median()), 3) if len(clean_num) > 0 else None
+        mean_val = round(float(clean_num.mean()), 3) if len(clean_num) > 0 else None
+        max_val = round(float(clean_num.max()), 3) if len(clean_num) > 0 else None
+        sum_val = round(float(clean_num.sum()), 2) if len(clean_num) > 0 else None
+
+        rule_outliers = 0
+        if not df_quality.empty:
+            sub_q = df_quality[
+                (df_quality["table_name"] == staging_name)
+                & (df_quality["column_name"] == col)
+                & (df_quality["stage"] == "final_gate")
+                & (df_quality["rule_name"] == "statistical_outliers_iqr_zscore")
+            ]
+            if not sub_q.empty:
+                rule_outliers = int(sub_q.iloc[0]["affected_count"])
+
+        ml_hits = 0
+        if not df_ml_flags.empty:
+            sub_ml = df_ml_flags[
+                (df_ml_flags["table_name"] == staging_name)
+                & (df_ml_flags["primary_column"] == col)
+            ]
+            ml_hits = len(sub_ml)
+
+        status_text = (
+            "100 % vollständig"
+            if missing_cnt == 0 and rule_outliers == 0 and ml_hits == 0
+            else f"Fehlend: {missing_cnt} | Ausreißer: {rule_outliers} | ML-Flags: {ml_hits}"
+        )
+
+        rows.append(
+            {
+                "Spalte": col,
+                "Rolle / Typ": (
+                    "Technische ID"
+                    if col.lower() in TECHNICAL_ID_COLUMNS
+                    else ("Zeitstempel" if "date" in col.lower() or "time" in col.lower() else ("Kennzahl (numerisch)" if is_num else "Text / Kategorie"))
+                ),
+                "Gesamtzeilen": total_rows,
+                "Gültige Werte": valid_cnt,
+                "Fehlende Werte": missing_cnt,
+                "Vollständigkeit (%)": completeness_pct,
+                "Minimum": min_val,
+                "Median": med_val,
+                "Durchschnitt (Ø)": mean_val,
+                "Maximum": max_val,
+                "Summe": sum_val,
+                "Statistische Ausreißer (Stufe 1)": rule_outliers,
+                "Isolation-Forest-Flags (Stufe 2)": ml_hits,
+                "Transparenz-Status": status_text,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 cfg = load_config()
 init_database(cfg)
 
@@ -81,7 +172,7 @@ with st.sidebar:
             "1. Übersicht & Quellen",
             "2. Qualitätsprüfungen (quality_log)",
             "3. Nicht verarbeitbar",
-            "4. Freigegebene Mart-Daten & Diagramme",
+            "4. Freigegebene Daten: KPI-Karten, Tabellen & Diagramme",
             "5. Regelbasierter Qualitätsbericht",
             "6. Bereitstellung & Download fertiger Daten",
         ],
@@ -150,6 +241,9 @@ df_conversions = fetch_dataframe(
 df_quality = fetch_dataframe(
     "SELECT * FROM metadata.quality_log ORDER BY checked_at DESC;"
 )
+df_ml_flags_all = fetch_dataframe(
+    "SELECT * FROM metadata.ml_anomaly_flags ORDER BY flagged_at DESC, ABS(z_score) DESC;"
+)
 df_gate = fetch_dataframe(
     "SELECT * FROM metadata.mart_gate_log ORDER BY checked_at DESC;"
 )
@@ -183,11 +277,11 @@ avg_duration_ms = (
 )
 unparseable_total = len(df_unparseable_files) + len(df_unparseable_rows)
 
-# ── PFLICHT-KPI-KARTEN ───────────────────────────────────────────────────────
+# ── GLOBALE SYSTEM-KPI-KARTEN ────────────────────────────────────────────────
 st.title("Transparente Plattform für Datenqualität")
 st.caption(
     "Ausschließliche Verarbeitung realer Datenquellen · Automatische Parquet-Konvertierung · "
-    "Mehrstufige Qualitätsprüfung vor Visualisierung"
+    "Mehrstufige Qualitätsprüfung · Wählbare KPI-Karten & Transparenz-Tabellen"
 )
 
 k1, k2, k3, k4, k5 = st.columns(5)
@@ -253,14 +347,76 @@ if selected_section.startswith("1."):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ANSICHT 2: QUALITÄTSPRÜFUNGEN (QUALITY_LOG)
+# ANSICHT 2: QUALITÄTSPRÜFUNGEN (QUALITY_LOG & ISOLATION FOREST)
 # ══════════════════════════════════════════════════════════════════════════════
 elif selected_section.startswith("2."):
-    st.subheader("Protokollierte Qualitätsprüfungen (`metadata.quality_log`)")
+    st.subheader("Zweistufige Qualitätsprüfung: Regelwerk (Stufe 1) & Isolation Forest (Stufe 2)")
 
     if df_quality.empty:
         st.info("Noch keine Qualitätsprüfungen vorhanden.")
     else:
+        # KPI-Karten für die Qualitätsprüfung
+        stage1_hits = int(
+            (
+                (df_quality["stage"] == "final_gate")
+                & (df_quality["affected_count"] > 0)
+            ).sum()
+        )
+        stage2_hits = len(df_ml_flags_all)
+        missing_total = int(
+            df_quality[
+                (df_quality["stage"] == "final_gate")
+                & (df_quality["rule_name"] == "missing_values")
+            ]["affected_count"].sum()
+        )
+        outlier_total = int(
+            df_quality[
+                (df_quality["stage"] == "final_gate")
+                & (df_quality["rule_name"] == "statistical_outliers_iqr_zscore")
+            ]["affected_count"].sum()
+        )
+
+        qk1, qk2, qk3, qk4 = st.columns(4)
+        qk1.metric(
+            "Aktive Regel-Befunde (final_gate)",
+            f"{stage1_hits}",
+            f"davon {prio_issues_count} priorisiert",
+        )
+        qk2.metric(
+            "Erkannte fehlende Werte (gesamt)",
+            f"{missing_total}",
+            "Regel: missing_values",
+        )
+        qk3.metric(
+            "Statistische Ausreißer (IQR / z-Score)",
+            f"{outlier_total}",
+            "Stufe 1: Regelbasiert",
+        )
+        qk4.metric(
+            "Isolation-Forest-Markierungen",
+            f"{stage2_hits}",
+            "Stufe 2: Mit Kennzahl-Begründung",
+        )
+
+        st.markdown("#### 1. Kompakte Zusammenfassung der Befunde nach Tabelle, Spalte & Regel")
+        summary_q = (
+            df_quality[df_quality["affected_count"] > 0]
+            .groupby(
+                ["table_name", "column_name", "rule_name", "priority_level"],
+                as_index=False,
+            )
+            .agg(
+                Betroffene_Zeilen=("affected_count", "max"),
+                Gesamt_Zeilen=("total_count", "max"),
+                Anteil_Prozent=("share_pct", "max"),
+                Wiederkehrend=("is_recurring", "max"),
+                Begründung=("explanation", "first"),
+            )
+            .sort_values(["priority_level", "Anteil_Prozent"], ascending=[False, False])
+        )
+        st.dataframe(summary_q, use_container_width=True, hide_index=True)
+
+        st.markdown("#### 2. Detailliertes Prüfprotokoll (`metadata.quality_log`) mit Filter")
         f_col1, f_col2, f_col3, f_col4 = st.columns(4)
         with f_col1:
             only_with_hits = st.checkbox("Nur Befunde mit Anzahl > 0", value=True)
@@ -297,7 +453,6 @@ elif selected_section.startswith("2."):
                     "stage",
                     "priority_level",
                     "is_recurring",
-                    "source_name",
                     "table_name",
                     "column_name",
                     "rule_name",
@@ -311,59 +466,26 @@ elif selected_section.startswith("2."):
             hide_index=True,
         )
 
-        # Wählbares Diagramm für Qualitätsbefunde
-        chart_choice = st.selectbox(
-            "Optionales Qualitätsdiagramm wählen:",
-            [
-                "Kein Diagramm anzeigen",
-                "Balkendiagramm: Befunde (Anzahl) je Regel",
-                "Kreisdiagramm: Verteilung der Befunde nach Spalte",
-            ],
-        )
-        if not filtered.empty and chart_choice.startswith("Balkendiagramm"):
-            agg_rule = (
-                filtered.groupby("rule_name", as_index=False)["affected_count"]
-                .sum()
-                .sort_values("affected_count", ascending=True)
-            )
-            fig = px.bar(
-                agg_rule,
-                x="affected_count",
-                y="rule_name",
-                orientation="h",
-                title="Anzahl betroffener Einträge je Qualitätsregel",
-                labels={"affected_count": "Anzahl Befunde", "rule_name": "Regel"},
-            )
-            fig.update_layout(height=340)
-            st.plotly_chart(fig, use_container_width=True)
-        elif not filtered.empty and chart_choice.startswith("Kreisdiagramm"):
-            agg_col = (
-                filtered.groupby("column_name", as_index=False)["affected_count"]
-                .sum()
-            )
-            fig = px.pie(
-                agg_col,
-                names="column_name",
-                values="affected_count",
-                title="Anteil der Qualitätsbefunde nach Spalte",
-            )
-            fig.update_layout(height=340)
-            st.plotly_chart(fig, use_container_width=True)
-
         st.markdown("---")
-        st.subheader("Lernende Anomalieprüfung (Stufe 2: Isolation Forest mit Begründung)")
-        df_ml_flags = fetch_dataframe(
-            "SELECT * FROM metadata.ml_anomaly_flags ORDER BY flagged_at DESC, ABS(z_score) DESC LIMIT 200;"
-        )
-        if df_ml_flags.empty:
+        st.markdown("#### 3. Lernende Anomalieprüfung (Stufe 2: Isolation Forest mit Begründungspflicht)")
+        if df_ml_flags_all.empty:
             st.info("Noch keine Markierungen aus der lernenden Anomalieprüfung vorhanden.")
         else:
             st.caption(
                 "Das Modell verändert oder löscht keine Daten. Jede Markierung enthält die "
                 "verantwortliche Hauptspalte, den beobachteten Wert, den Median sowie z-Score und IQR-Abstand."
             )
+            ml_tbl_filter = st.selectbox(
+                "Tabelle für Isolation-Forest-Markierungen filtern:",
+                ["ALLE"] + sorted(df_ml_flags_all["table_name"].unique().tolist()),
+            )
+            df_ml_show = (
+                df_ml_flags_all
+                if ml_tbl_filter == "ALLE"
+                else df_ml_flags_all[df_ml_flags_all["table_name"] == ml_tbl_filter]
+            )
             st.dataframe(
-                df_ml_flags[
+                df_ml_show[
                     [
                         "flagged_at",
                         "table_name",
@@ -405,10 +527,10 @@ elif selected_section.startswith("3."):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ANSICHT 4: FREIGEGEBENE MART-DATEN & WÄHLBARE DIAGRAMME
+# ANSICHT 4: FREIGEGEBENE MART-DATEN — KPI-AUSWAHL, TABELLEN & DIAGRAMME
 # ══════════════════════════════════════════════════════════════════════════════
 elif selected_section.startswith("4."):
-    st.subheader("Freigegebene Daten im Schema `mart` (nach Bestehen der Abschlussprüfung)")
+    st.subheader("Freigegebene Daten (`mart`): Wählbare KPI-Karten, Transparenz-Tabellen & Diagramme")
 
     if not mart_tables:
         st.warning(
@@ -416,53 +538,374 @@ elif selected_section.startswith("4."):
             "Nur Daten, die den abschließenden Prüfschritt bestanden haben, erscheinen hier."
         )
     else:
-        chosen_table = st.selectbox("Freigegebene Mart-Tabelle auswählen:", mart_tables)
-        row_limit = st.selectbox("Zeilenanzahl in Tabellenansicht:", [100, 500, 2000], index=0)
+        top_c1, top_c2 = st.columns([1, 2])
+        with top_c1:
+            chosen_table = st.selectbox("1. Freigegebene Mart-Tabelle wählen:", mart_tables)
+        df_mart_full = fetch_dataframe(f"SELECT * FROM mart.{chosen_table};")
 
-        df_mart = fetch_dataframe(
-            f"SELECT * FROM mart.{chosen_table} LIMIT {int(row_limit)};"
-        )
-        st.dataframe(df_mart, use_container_width=True, hide_index=True)
+        all_cols = df_mart_full.columns.tolist()
+        metric_cols = [
+            c
+            for c in all_cols
+            if pd.api.types.is_numeric_dtype(df_mart_full[c])
+            and not pd.api.types.is_bool_dtype(df_mart_full[c])
+            and c.lower() not in TECHNICAL_ID_COLUMNS
+        ]
+        if not metric_cols:
+            metric_cols = [
+                c for c in all_cols if pd.api.types.is_numeric_dtype(df_mart_full[c])
+            ]
+
+        with top_c2:
+            view_mode = st.selectbox(
+                "2. Haupt-Darstellungsart wählen (Tabellen & KPIs stehen im Zentrum):",
+                [
+                    "1. KPI-Karten + Spalten-Steckbrief & Transparenz-Matrix (Standard – 100 % Übersicht)",
+                    "2. KPI-Karten + Aggregierte Auswertungstabelle (Tages- / Gruppen-Kennzahlen)",
+                    "3. KPI-Karten + Einzelzeilen-Inspektor (Filter für fehlende Werte & ML-Anomalien)",
+                    "4. Kombinierte Ansicht: Aggregierte Datentabelle + Diagramm (Linie / Balken / Verteilung / Anteile)",
+                ],
+            )
+
+        # ── TEIL A: KONFIGURIERBARE KPI-KARTEN FÜR DIE GEWÄHLTE TABELLE ────────
+        st.markdown("#### A. Wählbare KPI-Karten der Tabelle (`mart." + chosen_table + "`)")
+        kpi_cfg1, kpi_cfg2 = st.columns([2, 1])
+        with kpi_cfg1:
+            selected_kpi_cols = st.multiselect(
+                "Kennzahlen (Spalten) für KPI-Karten auswählen:",
+                options=metric_cols,
+                default=metric_cols[:6],
+            )
+        with kpi_cfg2:
+            kpi_agg_mode = st.selectbox(
+                "Hauptwert auf den KPI-Karten:",
+                [
+                    "Durchschnitt (Ø)",
+                    "Median",
+                    "Maximum",
+                    "Minimum",
+                    "Summe (Gesamt)",
+                    "Daten-Vollständigkeit (%)",
+                ],
+            )
+
+        if selected_kpi_cols:
+            staging_ref = f"staging.{chosen_table}"
+            cols_per_row = min(len(selected_kpi_cols), 4)
+            kpi_columns = st.columns(cols_per_row)
+            total_r = len(df_mart_full)
+
+            for idx, col_name in enumerate(selected_kpi_cols):
+                target_card = kpi_columns[idx % cols_per_row]
+                s_col = df_mart_full[col_name]
+                clean_s = s_col.dropna().astype(float)
+                valid_n = len(clean_s)
+                missing_n = total_r - valid_n
+                comp_pct = (valid_n / total_r * 100.0) if total_r > 0 else 0.0
+
+                ml_cnt = 0
+                if not df_ml_flags_all.empty:
+                    ml_cnt = len(
+                        df_ml_flags_all[
+                            (df_ml_flags_all["table_name"] == staging_ref)
+                            & (df_ml_flags_all["primary_column"] == col_name)
+                        ]
+                    )
+
+                if valid_n == 0:
+                    main_str = "Keine gültigen Werte"
+                    sub_str = f"100 % fehlend ({missing_n}/{total_r})"
+                else:
+                    if kpi_agg_mode == "Durchschnitt (Ø)":
+                        main_str = f"Ø {clean_s.mean():,.2f}"
+                    elif kpi_agg_mode == "Median":
+                        main_str = f"Median {clean_s.median():,.2f}"
+                    elif kpi_agg_mode == "Maximum":
+                        main_str = f"Max {clean_s.max():,.2f}"
+                    elif kpi_agg_mode == "Minimum":
+                        main_str = f"Min {clean_s.min():,.2f}"
+                    elif kpi_agg_mode == "Summe (Gesamt)":
+                        main_str = f"∑ {clean_s.sum():,.2f}"
+                    else:
+                        main_str = f"{comp_pct:.1f} % gültig"
+
+                    sub_str = (
+                        f"Gültig: {valid_n}/{total_r} ({comp_pct:.1f} %) | "
+                        f"Min: {clean_s.min():,.1f} · Max: {clean_s.max():,.1f} | "
+                        f"ML-Flags: {ml_cnt}"
+                    )
+
+                target_card.metric(label=col_name, value=main_str, delta=sub_str, delta_color="off")
 
         st.markdown("---")
-        st.markdown("#### Wählbares Diagramm (vom Nutzer konfigurierbar)")
-        if not df_mart.empty:
-            c_type, c_x, c_y = st.columns(3)
-            with c_type:
-                plot_type = st.selectbox(
-                    "Diagrammtyp:",
-                    ["Kein Diagramm", "Balkendiagramm", "Kreisdiagramm"],
-                )
-            all_cols = df_mart.columns.tolist()
-            num_cols = [
-                c for c in all_cols if pd.api.types.is_numeric_dtype(df_mart[c])
+
+        # ── TEIL B: GEWÄHLTE HAUPT-DARSTELLUNGSART ────────────────────────────
+        transparency_df = build_column_transparency_table(
+            df_mart_full, chosen_table, df_quality, df_ml_flags_all
+        )
+
+        # MODUS 1: SPALTEN-STECKBRIEF & TRANSPARENZ-MATRIX
+        if view_mode.startswith("1."):
+            st.markdown(
+                "#### B. Spalten-Steckbrief & Transparenz-Matrix (vollständige Kennzahlen- und Qualitätsübersicht je Spalte)"
+            )
+            st.caption(
+                "Diese Tabelle funktioniert unabhängig vom Dateityp für jede Datenquelle und zeigt "
+                "auf einen Blick Vollständigkeit, statistische Kennzahlen sowie erkannte Ausreißer."
+            )
+            st.dataframe(transparency_df, use_container_width=True, hide_index=True)
+
+            st.markdown("#### C. Vorschau der freigegebenen Datentabelle (`mart." + chosen_table + "`)")
+            st.dataframe(df_mart_full.head(100), use_container_width=True, hide_index=True)
+
+        # MODUS 2: AGGREGIERTE AUSWERTUNGSTABELLE (TAGES- / GRUPPEN-KENNZAHLEN)
+        elif view_mode.startswith("2."):
+            st.markdown("#### B. Aggregierte Kennzahlen-Tabelle (Tages- oder Kategorien-Übersicht)")
+            time_cols = [
+                c for c in all_cols if "date" in c.lower() or "time" in c.lower()
             ]
-            with c_x:
-                x_col = st.selectbox("Kategorie / Zeitachse (X):", all_cols)
-            with c_y:
-                y_col = st.selectbox(
-                    "Kennzahl (Y):",
-                    num_cols if num_cols else all_cols,
+            agg_c1, agg_c2 = st.columns(2)
+            with agg_c1:
+                group_col = st.selectbox(
+                    "Gruppierungsspalte (z. B. Zeitstempel für Tageswerte oder Kategorie):",
+                    options=time_cols + [c for c in all_cols if c not in time_cols],
+                )
+            with agg_c2:
+                target_metric = st.selectbox(
+                    "Auszuwertende Kennzahl für die Gruppentabelle:",
+                    options=metric_cols if metric_cols else all_cols,
                 )
 
-            if plot_type == "Balkendiagramm" and x_col and y_col:
-                fig_m = px.bar(
-                    df_mart.head(100),
-                    x=x_col,
-                    y=y_col,
-                    title=f"{y_col} nach {x_col} (mart.{chosen_table})",
+            work_df = df_mart_full.copy()
+            if "date" in group_col.lower() or "time" in group_col.lower():
+                work_df["_gruppe_"] = pd.to_datetime(
+                    work_df[group_col], errors="coerce"
+                ).dt.strftime("%Y-%m-%d")
+                group_label = f"Tag ({group_col})"
+            else:
+                work_df["_gruppe_"] = work_df[group_col].astype(str)
+                group_label = group_col
+
+            work_df["_num_"] = pd.to_numeric(work_df[target_metric], errors="coerce")
+            grouped_table = (
+                work_df.groupby("_gruppe_", dropna=False)
+                .agg(
+                    Gesamt_Zeilen=("_num_", "size"),
+                    Gueltige_Werte=("_num_", "count"),
+                    Minimum=("_num_", "min"),
+                    Median=("_num_", "median"),
+                    Durchschnitt=("_num_", "mean"),
+                    Maximum=("_num_", "max"),
+                    Summe=("_num_", "sum"),
                 )
-                fig_m.update_layout(height=360)
-                st.plotly_chart(fig_m, use_container_width=True)
-            elif plot_type == "Kreisdiagramm" and x_col and y_col:
-                fig_m = px.pie(
-                    df_mart.head(50),
-                    names=x_col,
-                    values=y_col,
-                    title=f"Anteile von {y_col} nach {x_col} (mart.{chosen_table})",
+                .reset_index()
+                .rename(columns={"_gruppe_": group_label})
+            )
+            grouped_table["Fehlende_Werte"] = (
+                grouped_table["Gesamt_Zeilen"] - grouped_table["Gueltige_Werte"]
+            )
+            grouped_table["Vollstaendigkeit_Prozent"] = (
+                grouped_table["Gueltige_Werte"] / grouped_table["Gesamt_Zeilen"] * 100.0
+            ).round(2)
+
+            for num_c in ["Minimum", "Median", "Durchschnitt", "Maximum", "Summe"]:
+                grouped_table[num_c] = grouped_table[num_c].round(3)
+
+            st.dataframe(grouped_table, use_container_width=True, hide_index=True)
+
+        # MODUS 3: EINZELZEILEN-INSPEKTOR (MIT TRANSPARENZ-FILTER FÜR LÜCKEN & ANOMALIEN)
+        elif view_mode.startswith("3."):
+            st.markdown(
+                "#### B. Einzelzeilen-Inspektor mit Transparenz-Filter (Lücken, Ausreißer & ML-Markierungen)"
+            )
+            f1, f2 = st.columns([2, 1])
+            with f1:
+                row_filter_mode = st.selectbox(
+                    "Zeilenfilter wählen:",
+                    [
+                        "1. Alle Zeilen anzeigen",
+                        "2. Nur Zeilen mit fehlenden Werten (NULL / Lücken transparent prüfen)",
+                        "3. Nur Zeilen mit Isolation-Forest-Markierung (inkl. Begründungstext)",
+                        "4. Nur vollständig gefüllte Zeilen (ohne fehlende Werte)",
+                    ],
                 )
-                fig_m.update_layout(height=360)
-                st.plotly_chart(fig_m, use_container_width=True)
+            with f2:
+                max_rows_show = st.selectbox("Max. Zeilen in Ansicht:", [100, 300, 1000], index=1)
+
+            inspected_df = df_mart_full.copy()
+            inspected_df.insert(0, "row_index", range(len(inspected_df)))
+
+            staging_ref = f"staging.{chosen_table}"
+            ml_sub = (
+                df_ml_flags_all[df_ml_flags_all["table_name"] == staging_ref][
+                    ["row_index", "primary_column", "z_score", "reason_rule"]
+                ]
+                if not df_ml_flags_all.empty
+                else pd.DataFrame()
+            )
+            if not ml_sub.empty:
+                inspected_df = inspected_df.merge(ml_sub, on="row_index", how="left")
+
+            if row_filter_mode.startswith("2."):
+                mask_missing = df_mart_full[metric_cols].isna().any(axis=1)
+                inspected_df = inspected_df[mask_missing.values]
+                st.info(
+                    f"Gefundene Zeilen mit mindestens einem fehlenden Kennzahlenwert: **{len(inspected_df)} von {len(df_mart_full)}**"
+                )
+            elif row_filter_mode.startswith("3."):
+                if "reason_rule" in inspected_df.columns:
+                    inspected_df = inspected_df[inspected_df["reason_rule"].notna()]
+                else:
+                    inspected_df = inspected_df.iloc[0:0]
+                st.info(
+                    f"Durch Isolation Forest markierte Zeilen mit Begründung: **{len(inspected_df)}**"
+                )
+            elif row_filter_mode.startswith("4."):
+                mask_complete = ~df_mart_full[metric_cols].isna().any(axis=1)
+                inspected_df = inspected_df[mask_complete.values]
+                st.success(
+                    f"Vollständig gefüllte Zeilen ohne Lücken: **{len(inspected_df)} von {len(df_mart_full)}**"
+                )
+
+            st.dataframe(
+                inspected_df.head(int(max_rows_show)),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        # MODUS 4: KOMBINIERTE ANSICHT (AGGREGIERTE TABELLE + PASSENDES DIAGRAMM)
+        elif view_mode.startswith("4."):
+            st.markdown(
+                "#### B. Kombinierte Ansicht: Aggregierte Datentabelle + Diagramm (keine Grafik ohne zugrundeliegende Zahlentabelle)"
+            )
+            time_cols = [
+                c for c in all_cols if "date" in c.lower() or "time" in c.lower()
+            ]
+            c_chart, c_metric, c_agg = st.columns(3)
+            with c_chart:
+                chart_type = st.selectbox(
+                    "Darstellungsform (Diagramm + Tabelle):",
+                    [
+                        "1. Zeitreihen-Liniendiagramm (Stunden- oder Tagesverlauf) + Tabelle",
+                        "2. Balkendiagramm (Aggregierter Tagesvergleich) + Tabelle",
+                        "3. Kreisdiagramm (Anteile nach Wertebereich / Kategorie) + Tabelle",
+                        "4. Boxplot (Statistische Verteilung, Median & Ausreißer) + Tabelle",
+                    ],
+                )
+            with c_metric:
+                y_metric = st.selectbox(
+                    "Kennzahl auswählen (technische IDs ausgeblendet):",
+                    options=metric_cols if metric_cols else all_cols,
+                )
+            with c_agg:
+                time_resolution = st.selectbox(
+                    "Zeitliche Auflösung / Aggregation:",
+                    ["Tageswerte (Durchschnitt / Min / Max je Tag)", "Stundenwerte (Originalauflösung)"],
+                )
+
+            x_time_col = time_cols[0] if time_cols else all_cols[0]
+            plot_df = df_mart_full.copy()
+            plot_df["_val_"] = pd.to_numeric(plot_df[y_metric], errors="coerce")
+
+            if time_resolution.startswith("Tageswerte") and time_cols:
+                plot_df["Datum"] = pd.to_datetime(
+                    plot_df[x_time_col], errors="coerce"
+                ).dt.strftime("%Y-%m-%d")
+                agg_df = (
+                    plot_df.groupby("Datum", as_index=False)
+                    .agg(
+                        Gueltige_Stunden=("_val_", "count"),
+                        Fehlende_Stunden=("_val_", lambda s: int(s.isna().sum())),
+                        Minimum=("_val_", "min"),
+                        Durchschnitt=("_val_", "mean"),
+                        Median=("_val_", "median"),
+                        Maximum=("_val_", "max"),
+                        Summe=("_val_", "sum"),
+                    )
+                    .round(3)
+                )
+                x_axis_col = "Datum"
+                y_axis_col = "Durchschnitt"
+                table_to_show = agg_df
+            else:
+                plot_df[x_time_col] = plot_df[x_time_col].astype(str)
+                agg_df = plot_df[[x_time_col, y_metric]].rename(
+                    columns={y_metric: "Wert"}
+                )
+                x_axis_col = x_time_col
+                y_axis_col = "Wert"
+                table_to_show = agg_df
+
+            col_left, col_right = st.columns([1.15, 1.0])
+            with col_left:
+                st.markdown(f"**Zugrundeliegende Zahlentabelle für `{y_metric}`**")
+                st.dataframe(table_to_show, use_container_width=True, hide_index=True, height=380)
+
+            with col_right:
+                st.markdown(f"**Visuelle Darstellung für `{y_metric}`**")
+                if chart_type.startswith("1."):
+                    fig = px.line(
+                        table_to_show.dropna(subset=[y_axis_col]),
+                        x=x_axis_col,
+                        y=y_axis_col,
+                        markers=True,
+                        title=f"Zeitverlauf: {y_metric} ({y_axis_col})",
+                    )
+                    fig.update_layout(height=380)
+                    st.plotly_chart(fig, use_container_width=True)
+                elif chart_type.startswith("2."):
+                    fig = px.bar(
+                        table_to_show.dropna(subset=[y_axis_col]),
+                        x=x_axis_col,
+                        y=y_axis_col,
+                        title=f"Balkenvergleich: {y_metric} ({y_axis_col})",
+                    )
+                    fig.update_layout(height=380)
+                    st.plotly_chart(fig, use_container_width=True)
+                elif chart_type.startswith("3."):
+                    # Sinnvolle Gruppierung in 4 transparente Wertebereiche statt 50 Einzelzeitstempel!
+                    valid_vals = plot_df["_val_"].dropna()
+                    if len(valid_vals) > 0:
+                        q25, q50, q75 = np.percentile(valid_vals, [25, 50, 75])
+
+                        def bucket_label(v: float) -> str:
+                            if pd.isna(v):
+                                return "Fehlender Wert (NULL)"
+                            if v <= q25:
+                                return f"1. Niedrig (<= {q25:.1f})"
+                            if v <= q50:
+                                return f"2. Unteres Mittel ({q25:.1f} – {q50:.1f})"
+                            if v <= q75:
+                                return f"3. Oberes Mittel ({q50:.1f} – {q75:.1f})"
+                            return f"4. Spitzenbereich (> {q75:.1f})"
+
+                        bucket_series = plot_df["_val_"].apply(bucket_label)
+                        pie_df = (
+                            bucket_series.value_counts()
+                            .reset_index()
+                            .rename(columns={"index": "Wertebereich", "_val_": "Anzahl_Zeilen", "count": "Anzahl_Zeilen"})
+                        )
+                        pie_df.columns = ["Wertebereich", "Anzahl_Zeilen"]
+                        fig = px.pie(
+                            pie_df,
+                            names="Wertebereich",
+                            values="Anzahl_Zeilen",
+                            title=f"Verteilung der Zeilen nach Wertebereich & Lücken ({y_metric})",
+                        )
+                        fig.update_layout(height=380)
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.info("Keine gültigen Zahlenwerte für Kreisdiagramm vorhanden.")
+                elif chart_type.startswith("4."):
+                    fig = px.box(
+                        plot_df.dropna(subset=["_val_"]),
+                        y="_val_",
+                        points="outliers",
+                        title=f"Verteilung, Median, Quartile & Ausreißer: {y_metric}",
+                        labels={"_val_": y_metric},
+                    )
+                    fig.update_layout(height=380)
+                    st.plotly_chart(fig, use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

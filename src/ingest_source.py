@@ -73,9 +73,8 @@ def fetch_smard_raw_data(config: Optional[AppConfig] = None) -> Dict[str, object
                     merged_records[epoch_ms] = {col: None for col in SMARD_SERIES.values()}
                 merged_records[epoch_ms][column_name] = val
 
-    fetch_tag = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    raw_json_path = cfg.raw_dir / f"smard_de_hour_{fetch_tag}.json"
-    raw_csv_path = cfg.raw_dir / f"smard_de_hour_{fetch_tag}.csv"
+    raw_json_path = cfg.raw_dir / "smard_strommarkt_de.json"
+    raw_csv_path = cfg.raw_dir / "smard_strommarkt_de.csv"
 
     raw_json_path.write_text(
         json.dumps(raw_json_snapshots, ensure_ascii=False), encoding="utf-8"
@@ -155,9 +154,8 @@ def fetch_dwd_weather_raw_data(config: Optional[AppConfig] = None) -> Dict[str, 
     if not weather_rows:
         raise ValueError(f"Keine Wetterdaten von DWD Station {DWD_STATION_ID} erhalten.")
 
-    fetch_tag = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    raw_json_path = cfg.raw_dir / f"dwd_frankfurt_hour_{fetch_tag}.json"
-    raw_csv_path = cfg.raw_dir / f"dwd_frankfurt_hour_{fetch_tag}.csv"
+    raw_json_path = cfg.raw_dir / "dwd_wetter_frankfurt.json"
+    raw_csv_path = cfg.raw_dir / "dwd_wetter_frankfurt.csv"
 
     raw_json_path.write_text(
         json.dumps(payload, ensure_ascii=False), encoding="utf-8"

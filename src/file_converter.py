@@ -202,7 +202,7 @@ def process_single_file(
 
     file_format = SUPPORTED_EXTENSIONS[ext]
     raw_target = cfg.raw_dir / f"{file_id}{ext}"
-    parquet_target = cfg.staging_dir / f"{file_id}.parquet"
+    parquet_target = cfg.staging_dir / f"{stem}.parquet"
 
     # 3. Originaldatei unverändert nach data/raw/ kopieren
     shutil.copy2(str(file_path), str(raw_target))
