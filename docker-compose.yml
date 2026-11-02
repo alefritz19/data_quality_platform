@@ -1,0 +1,30 @@
+# Standard-Startdatei für die Ein-Befehl-Installation ('docker compose up -d')
+# Startet standardmäßig die ressourcenbegrenzte, vorkonfigurierte Umgebung.
+services:
+  quality-platform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dqp_quickstart
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 2g
+    environment:
+      APP_ENV: ${APP_ENV:-demo}
+      DATA_DIR: /app/data
+      INBOX_DIR: /app/data/inbox
+      EXPORT_DIR: /app/data/export
+      DUCKDB_PATH: /app/data/mart/quality_platform.duckdb
+      CHUNK_SIZE_ROWS: ${CHUNK_SIZE_ROWS:-100000}
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-20}
+      EXPORT_RETENTION_HOURS: ${EXPORT_RETENTION_HOURS:-24}
+      EXPORT_MAX_TOTAL_MB: ${EXPORT_MAX_TOTAL_MB:-500}
+      SMARD_WEEKS_COUNT: ${SMARD_WEEKS_COUNT:-1}
+      DEMO_READ_ONLY: ${DEMO_READ_ONLY:-true}
+      ADMIN_PIN: ${ADMIN_PIN:-change_me_in_local_env}
+      STREAMLIT_PORT: 8501
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs

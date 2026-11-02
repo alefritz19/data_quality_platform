@@ -14,7 +14,10 @@ from dagster_app.assets import (
     verified_mart_tables,
 )
 from dagster_app.checks import check_mart_gate_passed, check_no_pii_in_staging
-from dagster_app.schedules import daily_public_sources_schedule
+from dagster_app.schedules import (
+    daily_public_sources_schedule,
+    demo_periodic_reset_schedule,
+)
 from dagster_app.sensors import full_pipeline_job, inbox_file_sensor, inbox_processing_job
 
 defs = Definitions(
@@ -36,6 +39,7 @@ defs = Definitions(
     ],
     schedules=[
         daily_public_sources_schedule,
+        demo_periodic_reset_schedule,
     ],
     sensors=[
         inbox_file_sensor,

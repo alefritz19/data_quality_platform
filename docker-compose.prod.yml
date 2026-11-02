@@ -1,0 +1,52 @@
+services:
+  prod-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dqp_prod_dashboard
+    restart: unless-stopped
+    environment:
+      APP_ENV: prod
+      DATA_DIR: /app/data
+      INBOX_DIR: /app/data/inbox
+      EXPORT_DIR: /app/data/export
+      DUCKDB_PATH: /app/data/mart/quality_platform_prod.duckdb
+      CHUNK_SIZE_ROWS: 100000
+      MAX_UPLOAD_SIZE_MB: 500
+      EXPORT_RETENTION_HOURS: 72
+      EXPORT_MAX_TOTAL_MB: 5000
+      SMARD_WEEKS_COUNT: 4
+      DEMO_READ_ONLY: "false"
+      ADMIN_PIN: ${ADMIN_PIN:-change_me_in_prod_env}
+      STREAMLIT_PORT: 8502
+    ports:
+      - "127.0.0.1:8502:8502"
+    volumes:
+      - ./data/prod:/app/data
+      - ./logs/prod:/app/logs
+
+  prod-dagster:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dqp_prod_dagster
+    restart: unless-stopped
+    command: ["dagster", "dev", "-m", "dagster_app", "-h", "0.0.0.0", "-p", "3000"]
+    environment:
+      APP_ENV: prod
+      DATA_DIR: /app/data
+      INBOX_DIR: /app/data/inbox
+      EXPORT_DIR: /app/data/export
+      DUCKDB_PATH: /app/data/mart/quality_platform_prod.duckdb
+      CHUNK_SIZE_ROWS: 100000
+      MAX_UPLOAD_SIZE_MB: 500
+      EXPORT_RETENTION_HOURS: 72
+      EXPORT_MAX_TOTAL_MB: 5000
+      SMARD_WEEKS_COUNT: 4
+      DEMO_READ_ONLY: "false"
+      ADMIN_PIN: ${ADMIN_PIN:-change_me_in_prod_env}
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data/prod:/app/data
+      - ./logs/prod:/app/logs

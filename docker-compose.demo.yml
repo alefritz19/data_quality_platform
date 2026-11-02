@@ -1,0 +1,56 @@
+services:
+  demo-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dqp_demo_dashboard
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 2g
+    environment:
+      APP_ENV: demo
+      DATA_DIR: /app/data
+      INBOX_DIR: /app/data/inbox
+      EXPORT_DIR: /app/data/export
+      DUCKDB_PATH: /app/data/mart/quality_platform_demo.duckdb
+      CHUNK_SIZE_ROWS: 50000
+      MAX_UPLOAD_SIZE_MB: 20
+      EXPORT_RETENTION_HOURS: 24
+      EXPORT_MAX_TOTAL_MB: 500
+      SMARD_WEEKS_COUNT: 1
+      DEMO_READ_ONLY: "true"
+      ADMIN_PIN: ${ADMIN_PIN:-change_me_in_demo_env}
+      STREAMLIT_PORT: 8501
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data/demo:/app/data
+      - ./logs/demo:/app/logs
+
+  demo-dagster:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dqp_demo_dagster
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 1g
+    command: ["dagster", "dev", "-m", "dagster_app", "-h", "0.0.0.0", "-p", "3001"]
+    environment:
+      APP_ENV: demo
+      DATA_DIR: /app/data
+      INBOX_DIR: /app/data/inbox
+      EXPORT_DIR: /app/data/export
+      DUCKDB_PATH: /app/data/mart/quality_platform_demo.duckdb
+      CHUNK_SIZE_ROWS: 50000
+      MAX_UPLOAD_SIZE_MB: 20
+      EXPORT_RETENTION_HOURS: 24
+      EXPORT_MAX_TOTAL_MB: 500
+      SMARD_WEEKS_COUNT: 1
+      DEMO_READ_ONLY: "true"
+      ADMIN_PIN: ${ADMIN_PIN:-change_me_in_demo_env}
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - ./data/demo:/app/data
+      - ./logs/demo:/app/logs
