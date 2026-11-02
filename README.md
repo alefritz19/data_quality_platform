@@ -42,7 +42,8 @@ data_quality_platform/
 * [x] **Schritt 5:** Qualitätsprüfungen und `metadata.quality_log` (inkl. Abschnitt „Nicht verarbeitbar“)
 * [x] **Schritt 6:** Abschließende Prüfung vor der Visualisierung (`final_gate` → `mart`)
 * [x] **Schritt 7:** Dagster: Assets, Asset Checks, Schedules, Sensor für den Eingangsordner
-* [ ] **Schritt 8:** Streamlit: KPIs, Tabellen, wählbare Diagramme
+* [x] **Schritt 8:** Streamlit: KPI-Karten, Tabellen, wählbare Diagramme (`dashboard/app.py`)
+* [ ] **Schritt 9:** Regelbasierter Bericht mit konkreten Empfehlungen
 
 ## Angebundene Datenquellen (`metadata.quellen`)
 
