@@ -419,20 +419,32 @@ if not is_dark:
                 flex-wrap: nowrap !important;
                 align-items: center !important;
             }
-            /* Linkes Menü: klar linksbündig und mit sauberer dunklerer Konturlinie abgegrenzt */
+            /* Linkes Menü: dauerhaft sichtbar als echte Flex-Spalte (überlappt den Hauptbereich niemals) */
             [data-testid="stSidebar"] [data-testid="stRadio"] > div {
                 justify-content: flex-start !important;
                 align-items: flex-start !important;
             }
             [data-testid="stSidebar"] {
+                position: relative !important;
+                left: 0 !important;
+                flex-shrink: 0 !important;
+                min-width: 280px !important;
+                max-width: 280px !important;
+                width: 280px !important;
+                transform: none !important;
+                margin-left: 0 !important;
+                visibility: visible !important;
+                display: block !important;
                 background-color: #E8F2FC !important;
                 border-right: 1px solid #AFCBE8 !important;
                 box-shadow: none !important;
             }
             [data-testid="stSidebar"] > div:first-child {
                 background-color: #E8F2FC !important;
+                width: 280px !important;
             }
-            [data-testid="stSidebarCollapseButton"] {
+            [data-testid="stSidebarCollapseButton"],
+            [data-testid="collapsedControl"] {
                 display: none !important;
             }
             [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
@@ -654,14 +666,26 @@ else:
                 align-items: flex-start !important;
             }
             [data-testid="stSidebar"] {
+                position: relative !important;
+                left: 0 !important;
+                flex-shrink: 0 !important;
+                min-width: 280px !important;
+                max-width: 280px !important;
+                width: 280px !important;
+                transform: none !important;
+                margin-left: 0 !important;
+                visibility: visible !important;
+                display: block !important;
                 background-color: #21252B !important;
                 border-right: 1px solid #333842 !important;
                 box-shadow: none !important;
             }
             [data-testid="stSidebar"] > div:first-child {
                 background-color: #21252B !important;
+                width: 280px !important;
             }
-            [data-testid="stSidebarCollapseButton"] {
+            [data-testid="stSidebarCollapseButton"],
+            [data-testid="collapsedControl"] {
                 display: none !important;
             }
             [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
