@@ -142,6 +142,24 @@ def init_database(config: Optional[AppConfig] = None) -> None:
             );
             """
         )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS metadata.ml_anomaly_flags (
+                flag_id VARCHAR PRIMARY KEY,
+                run_id VARCHAR NOT NULL,
+                table_name VARCHAR NOT NULL,
+                row_index BIGINT NOT NULL,
+                primary_column VARCHAR NOT NULL,
+                observed_value DOUBLE NOT NULL,
+                column_median DOUBLE NOT NULL,
+                z_score DOUBLE NOT NULL,
+                anomaly_score DOUBLE NOT NULL,
+                reason_rule VARCHAR NOT NULL,
+                flagged_at TIMESTAMP NOT NULL
+            );
+            """
+        )
     finally:
         conn.close()
 

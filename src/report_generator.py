@@ -37,6 +37,10 @@ RULE_RECOMMENDATIONS = {
     "pii_pattern_detected": (
         "Spalte vor der Weiterverarbeitung pseudonymisieren oder aus dem Datenexport entfernen."
     ),
+    "isolation_forest_anomaly_flag": (
+        "Durch Isolation Forest markierte Zeitpunkte anhand der protokollierten Kennzahl-Abweichung "
+        "(z-Score / IQR-Faktor in 'metadata.ml_anomaly_flags') fachlich gegenprüfen."
+    ),
 }
 
 

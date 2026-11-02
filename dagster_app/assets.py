@@ -14,6 +14,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, List
 from dagster import AssetExecutionContext, MetadataValue, Output, asset
+from src.anomaly_model import run_all_ml_anomaly_checks
 from src.config import load_config
 from src.export_manager import cleanup_expired_exports
 from src.file_converter import process_inbox
@@ -102,9 +103,10 @@ def staging_tables(
 def quality_check_results(
     context: AssetExecutionContext,
 ) -> Output[List[Dict[str, object]]]:
-    """Führt alle regelbasierten Qualitätsprüfungen auf den Staging-Tabellen aus."""
+    """Führt alle regelbasierten Prüfungen (Stufe 1) und Isolation Forest (Stufe 2) aus."""
     cfg = load_config()
     findings = run_all_staging_quality_checks(stage="staging", config=cfg)
+    ml_summary = run_all_ml_anomaly_checks(cfg)
     issues_with_hits = [f for f in findings if int(f.get("affected_count", 0)) > 0]
     prioritized_hits = [
         f for f in issues_with_hits if f.get("priority_level") == "PRIORISIERT"
@@ -112,7 +114,8 @@ def quality_check_results(
 
     context.log.info(
         f"Qualitätsprüfung: {len(findings)} Regeln geprüft, "
-        f"{len(issues_with_hits)} Auffälligkeiten ({len(prioritized_hits)} priorisiert)."
+        f"{len(issues_with_hits)} Auffälligkeiten ({len(prioritized_hits)} priorisiert). "
+        f"ML-Stufe 2: {ml_summary}"
     )
     return Output(
         value=findings,

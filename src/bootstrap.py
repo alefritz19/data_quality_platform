@@ -9,6 +9,7 @@ im Dashboard bereitstellt.
 
 from pathlib import Path
 from typing import Dict, Optional
+from src.anomaly_model import run_all_ml_anomaly_checks
 from src.config import AppConfig, load_config
 from src.database import get_connection, init_database
 from src.export_manager import cleanup_expired_exports, create_export_package
@@ -38,8 +39,9 @@ def run_end_to_end_pipeline(config: Optional[AppConfig] = None) -> Dict[str, obj
     # 3. Staging in DuckDB
     staged = stage_all_parquet_files(cfg)
 
-    # 4. Qualitätsprüfungen (Stufe 1)
+    # 4. Qualitätsprüfungen (Stufe 1: Regeln + Stufe 2: Isolation Forest mit Begründung)
     findings = run_all_staging_quality_checks(stage="staging", config=cfg)
+    ml_flags = run_all_ml_anomaly_checks(cfg)
 
     # 5. Abschließende Freigabeprüfung vor Visualisierung (Gatekeeper)
     gate_results = run_final_gate_all(cfg)

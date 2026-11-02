@@ -47,7 +47,7 @@ data_quality_platform/
 * [x] **Schritt 10:** Bereitstellung fertiger Daten (Download, TTL-Auto-Löschung und Speicherlimits)
 * [x] **Schritt 11:** Demo- und Prod-Kontur (`docker-compose.prod.yml`, `docker-compose.demo.yml`, Limits, Schreibschutz)
 * [x] **Schritt 12:** Weitere reale Quellen hinzufügen (Deutscher Wetterdienst / DWD Station 01420 Frankfurt/Main)
-* [ ] **Schritt 13:** Lernende Anomalieprüfung (zweite Stufe: Isolation Forest mit erklärbarer Begründung)
+* [x] **Schritt 13:** Lernende Anomalieprüfung (zweite Stufe: Isolation Forest mit erklärbarer Begründung in `metadata.ml_anomaly_flags`)
 * [ ] **Schritt 14:** Deployment auf Oracle-Server, README mit echten Zahlen
 
 ## Angebundene Datenquellen (`metadata.quellen`)

@@ -18,6 +18,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from src.anomaly_model import run_all_ml_anomaly_checks
 from src.config import load_config
 from src.database import get_connection, init_database
 from src.export_manager import create_export_package, get_export_storage_status
@@ -122,6 +123,7 @@ with st.sidebar:
                 process_inbox(cfg)
                 stage_all_parquet_files(cfg)
                 run_all_staging_quality_checks(stage="staging", config=cfg)
+                run_all_ml_anomaly_checks(cfg)
                 run_final_gate_all(cfg)
                 build_quality_report(cfg)
                 st.success("Pipeline-Durchlauf und Freigabeprüfung abgeschlossen.")
@@ -134,6 +136,7 @@ with st.sidebar:
                 process_inbox(cfg)
                 stage_all_parquet_files(cfg)
                 run_all_staging_quality_checks(stage="staging", config=cfg)
+                run_all_ml_anomaly_checks(cfg)
                 run_final_gate_all(cfg)
                 build_quality_report(cfg)
                 st.success("Eingangsordner erfolgreich verarbeitet.")
@@ -346,6 +349,36 @@ elif selected_section.startswith("2."):
             )
             fig.update_layout(height=340)
             st.plotly_chart(fig, use_container_width=True)
+
+        st.markdown("---")
+        st.subheader("Lernende Anomalieprüfung (Stufe 2: Isolation Forest mit Begründung)")
+        df_ml_flags = fetch_dataframe(
+            "SELECT * FROM metadata.ml_anomaly_flags ORDER BY flagged_at DESC, ABS(z_score) DESC LIMIT 200;"
+        )
+        if df_ml_flags.empty:
+            st.info("Noch keine Markierungen aus der lernenden Anomalieprüfung vorhanden.")
+        else:
+            st.caption(
+                "Das Modell verändert oder löscht keine Daten. Jede Markierung enthält die "
+                "verantwortliche Hauptspalte, den beobachteten Wert, den Median sowie z-Score und IQR-Abstand."
+            )
+            st.dataframe(
+                df_ml_flags[
+                    [
+                        "flagged_at",
+                        "table_name",
+                        "row_index",
+                        "primary_column",
+                        "observed_value",
+                        "column_median",
+                        "z_score",
+                        "anomaly_score",
+                        "reason_rule",
+                    ]
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
