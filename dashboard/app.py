@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import streamlit.components.v1 as components
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
@@ -244,33 +245,39 @@ def build_column_transparency_table(
 cfg = load_config()
 init_database(cfg)
 
-# ── VEREINTE, NAHTLOSE KOPFLEISTE MIT GOLDEN-BLAU-GRÜNEM EMBLEM ──────────────
+# ── VEREINTE, NAHTLOSE KOPFLEISTE MIT GRÖSSEREM, FEINLINIGEM EMBLEM ──────────
 T = TEXTS[st.session_state["ui_lang"]]
 
 LOGO_SVG = (
-    '<svg width="44" height="44" viewBox="0 0 48 48" fill="none" '
+    '<svg width="56" height="56" viewBox="0 0 56 56" fill="none" '
     'xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">'
     '<defs>'
-    '<linearGradient id="goldGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">'
-    '<stop offset="0%" stop-color="#FFE066"/>'
+    '<linearGradient id="goldGrad" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">'
+    '<stop offset="0%" stop-color="#FFE875"/>'
     '<stop offset="50%" stop-color="#F59E0B"/>'
     '<stop offset="100%" stop-color="#D97706"/>'
     '</linearGradient>'
-    '<linearGradient id="innerBg" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">'
-    '<stop offset="0%" stop-color="#1E3A5F"/>'
-    '<stop offset="100%" stop-color="#0F2942"/>'
+    '<linearGradient id="innerBg" x1="6" y1="6" x2="50" y2="50" gradientUnits="userSpaceOnUse">'
+    '<stop offset="0%" stop-color="#1E3246"/>'
+    '<stop offset="100%" stop-color="#12202F"/>'
     '</linearGradient>'
     '</defs>'
-    '<!-- Goldenes Wappen-Hexagon -->'
-    '<polygon points="24,2 44,13 44,35 24,46 4,35 4,13" fill="url(#goldGrad)" stroke="#FEF08A" stroke-width="1.5"/>'
-    '<polygon points="24,6 40,15 40,33 24,42 8,33 8,15" fill="url(#innerBg)"/>'
-    '<!-- Drei Parquet-Datensäulen (Blau, Smaragdgrün, Gold) -->'
-    '<rect x="14" y="25" width="4.5" height="9" rx="1.2" fill="#60A5FA"/>'
-    '<rect x="21.5" y="19" width="4.5" height="15" rx="1.2" fill="#10B981"/>'
-    '<rect x="29" y="14" width="4.5" height="20" rx="1.2" fill="#FACC15"/>'
-    '<!-- Goldener Qualitäts-Prüfbogen -->'
-    '<path d="M13 18 L20 23 L32 12" stroke="#FDE047" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'
-    '<circle cx="32" cy="12" r="2.3" fill="#10B981" stroke="#FDE047" stroke-width="1.2"/>'
+    '<!-- Äußeres & inneres Hexagon mit feinen goldenen Linien -->'
+    '<polygon points="28,3 50,15.5 50,40.5 28,53 6,40.5 6,15.5" fill="url(#innerBg)" stroke="url(#goldGrad)" stroke-width="1.6"/>'
+    '<polygon points="28,6.5 46.8,17.2 46.8,38.8 28,49.5 9.2,38.8 9.2,17.2" fill="none" stroke="#FDE047" stroke-opacity="0.45" stroke-width="0.8"/>'
+    '<!-- Feines Koordinaten-Basisraster -->'
+    '<line x1="15" y1="39" x2="41" y2="39" stroke="#93C5FD" stroke-opacity="0.4" stroke-width="0.9"/>'
+    '<!-- Vier schlanke, präzise Datensäulen -->'
+    '<rect x="16.5" y="30" width="3.2" height="9" rx="0.8" fill="#60A5FA" opacity="0.9"/>'
+    '<rect x="22.8" y="25" width="3.2" height="14" rx="0.8" fill="#38BDF8" opacity="0.95"/>'
+    '<rect x="29.1" y="20" width="3.2" height="19" rx="0.8" fill="#10B981" opacity="0.95"/>'
+    '<rect x="35.4" y="15" width="3.2" height="24" rx="0.8" fill="#FACC15"/>'
+    '<!-- Feine goldene Qualitäts- und Trendlinie mit Messpunkten -->'
+    '<path d="M16.5 25.5 L24.4 20.5 L30.7 22.5 L38.5 12.5" stroke="#FEF08A" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>'
+    '<circle cx="16.5" cy="25.5" r="1.4" fill="#60A5FA" stroke="#FEF08A" stroke-width="0.9"/>'
+    '<circle cx="24.4" cy="20.5" r="1.4" fill="#38BDF8" stroke="#FEF08A" stroke-width="0.9"/>'
+    '<circle cx="30.7" cy="22.5" r="1.4" fill="#10B981" stroke="#FEF08A" stroke-width="0.9"/>'
+    '<circle cx="38.5" cy="12.5" r="1.8" fill="#10B981" stroke="#FEF08A" stroke-width="1.1"/>'
     '</svg>'
 )
 
@@ -322,10 +329,10 @@ with header_container:
 T = TEXTS[st.session_state["ui_lang"]]
 is_dark = st.session_state["ui_theme"] == "DARK"
 plotly_tpl = "plotly_dark" if is_dark else "plotly_white"
-chart_paper_bg = "#162234" if is_dark else "#FFFFFF"
-chart_plot_bg = "#1B2A40" if is_dark else "#F9FBFF"
+chart_paper_bg = "#20232A" if is_dark else "#FFFFFF"
+chart_plot_bg = "#181A1F" if is_dark else "#F9FBFF"
 
-# ── ZWEI-FARBEN-DESIGN (HELL: WEISS/HELLBLAU | DUNKEL: SCHIEFERBLAU) ─────────
+# ── ZWEI-FARBEN-DESIGN (HELL: WEISS/HELLBLAU | DUNKEL: MODERN MATTE DARK) ────
 if not is_dark:
     st.markdown(
         """
@@ -334,7 +341,7 @@ if not is_dark:
             [data-testid="stHeader"] {
                 display: none !important;
             }
-            /* Hauptcontainer auf 100 % Breite ohne seitliche Lücken */
+            /* Hauptcontainer auf 100 % Breite */
             .block-container,
             [data-testid="stAppViewBlockContainer"],
             [data-testid="stMainBlockContainer"] {
@@ -351,7 +358,7 @@ if not is_dark:
                 background-color: #FFFFFF !important;
                 color: #2B3E54 !important;
             }
-            /* Nahtlos durchgehende Kopfleiste: von ganz links bis ganz rechts an den Bildschirmrand */
+            /* Nahtlos durchgehende Kopfleiste: vertikal exakt in der Mitte */
             .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
             [data-testid="stMainBlockContainer"] > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
             div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker),
@@ -360,25 +367,23 @@ if not is_dark:
                 top: 0 !important;
                 z-index: 9999 !important;
                 background-color: #E8F2FC !important;
-                border: none !important;
+                border-bottom: 1px solid #AFCBE8 !important;
                 width: calc(100% + 4.4rem) !important;
                 max-width: none !important;
-                margin-top: -1rem !important;
+                margin-top: 0rem !important;
                 margin-left: -2.2rem !important;
                 margin-right: -2.2rem !important;
                 margin-bottom: 18px !important;
-                padding: 18px 2.2rem 18px 2.2rem !important;
+                padding: 14px 2.2rem 14px 2.2rem !important;
                 box-shadow: 0 0 0 100vmax #E8F2FC !important;
                 clip-path: inset(0 -100vmax) !important;
             }
             .unified-header-wrap {
                 display: flex !important;
                 align-items: center !important;
-                gap: 14px !important;
-                margin-top: -6px !important;
-                margin-bottom: 0 !important;
-                padding-top: 0 !important;
-                padding-bottom: 6px !important;
+                gap: 15px !important;
+                margin: 0 !important;
+                padding: 2px 0 !important;
             }
             .unified-header-text {
                 display: flex !important;
@@ -404,39 +409,30 @@ if not is_dark:
                 padding: 0 !important;
                 white-space: nowrap !important;
             }
-            div:has(#fixed-top-header-marker) [data-testid="stRadio"] {
-                margin-top: -6px !important;
-                padding-bottom: 6px !important;
+            /* NUR die Radio-Buttons in der oberen Kopfleiste rechtsbündig ausrichten */
+            div[data-testid="stHorizontalBlock"]:has(#fixed-top-header-marker) [data-testid="stRadio"] {
+                margin: 0 !important;
+                padding: 0 !important;
             }
-            div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
+            div[data-testid="stHorizontalBlock"]:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
                 justify-content: flex-end !important;
                 flex-wrap: nowrap !important;
                 align-items: center !important;
             }
-            /* Linkes Menü dauerhaft geöffnet & nahtlos mit der Kopfleiste verbunden */
+            /* Linkes Menü: klar linksbündig und mit sauberer dunklerer Konturlinie abgegrenzt */
+            [data-testid="stSidebar"] [data-testid="stRadio"] > div {
+                justify-content: flex-start !important;
+                align-items: flex-start !important;
+            }
             [data-testid="stSidebar"] {
                 background-color: #E8F2FC !important;
-                border: none !important;
-                border-right: none !important;
+                border-right: 1px solid #AFCBE8 !important;
                 box-shadow: none !important;
-                min-width: 280px !important;
-                max-width: 280px !important;
-                transform: none !important;
-                margin-left: 0 !important;
-                visibility: visible !important;
-                display: block !important;
             }
-            [data-testid="stSidebar"] > div,
             [data-testid="stSidebar"] > div:first-child {
                 background-color: #E8F2FC !important;
-                border: none !important;
-                border-right: none !important;
-                box-shadow: none !important;
-                width: 280px !important;
             }
-            /* Einklapp-Pfeil ausblenden, damit das linke Menü fest stehen bleibt */
-            [data-testid="stSidebarCollapseButton"],
-            [data-testid="collapsedControl"] {
+            [data-testid="stSidebarCollapseButton"] {
                 display: none !important;
             }
             [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
@@ -553,7 +549,7 @@ else:
     st.markdown(
         """
         <style>
-            /* Dunkles Zweifarben-Schema: ruhiges Schieferblau & reinweiße Schrift */
+            /* Modern Matte Dark (angenehmes mattes Anthrazit/Graphit statt Total-Black oder Blau) */
             [data-testid="stHeader"] {
                 display: none !important;
             }
@@ -569,10 +565,10 @@ else:
                 overflow-x: hidden !important;
             }
             .stApp, [data-testid="stAppViewContainer"] {
-                background-color: #121D2B !important;
-                color: #FFFFFF !important;
+                background-color: #181A1F !important;
+                color: #F3F4F6 !important;
             }
-            /* Alle Textelemente, Labels, Radio-Optionen, Checkboxen und Captions im Dunkelmodus weiß */
+            /* Alle Textelemente, Labels, Radio-Optionen, Checkboxen und Captions im Matte-Dark-Modus klar weiß */
             .stApp p,
             .stApp span,
             .stApp label,
@@ -586,14 +582,14 @@ else:
             [data-testid="stRadio"] label span,
             [data-testid="stCheckbox"] label p,
             [data-testid="stCheckbox"] label span {
-                color: #F8FAFC !important;
+                color: #F3F4F6 !important;
             }
             code {
-                background-color: #243852 !important;
-                color: #E2F0FF !important;
-                border: 1px solid #365275 !important;
+                background-color: #282C34 !important;
+                color: #93C5FD !important;
+                border: 1px solid #3B4048 !important;
             }
-            /* Nahtlos durchgehende Kopfleiste im Dunkelmodus bis ganz an den rechten Rand */
+            /* Nahtlos durchgehende Kopfleiste im Matte-Dark-Modus, vertikal exakt mittig */
             .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
             [data-testid="stMainBlockContainer"] > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
             div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker),
@@ -601,26 +597,24 @@ else:
                 position: sticky !important;
                 top: 0 !important;
                 z-index: 9999 !important;
-                background-color: #19283B !important;
-                border: none !important;
+                background-color: #21252B !important;
+                border-bottom: 1px solid #333842 !important;
                 width: calc(100% + 4.4rem) !important;
                 max-width: none !important;
-                margin-top: -1rem !important;
+                margin-top: 0rem !important;
                 margin-left: -2.2rem !important;
                 margin-right: -2.2rem !important;
                 margin-bottom: 18px !important;
-                padding: 18px 2.2rem 18px 2.2rem !important;
-                box-shadow: 0 0 0 100vmax #19283B !important;
+                padding: 14px 2.2rem 14px 2.2rem !important;
+                box-shadow: 0 0 0 100vmax #21252B !important;
                 clip-path: inset(0 -100vmax) !important;
             }
             .unified-header-wrap {
                 display: flex !important;
                 align-items: center !important;
-                gap: 14px !important;
-                margin-top: -6px !important;
-                margin-bottom: 0 !important;
-                padding-top: 0 !important;
-                padding-bottom: 6px !important;
+                gap: 15px !important;
+                margin: 0 !important;
+                padding: 2px 0 !important;
             }
             .unified-header-text {
                 display: flex !important;
@@ -639,44 +633,35 @@ else:
                 padding: 0 !important;
             }
             .unified-header-sub {
-                color: #DCE7F3 !important;
+                color: #D1D5DB !important;
                 font-size: 0.85rem !important;
                 line-height: 1.25 !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 white-space: nowrap !important;
             }
-            div:has(#fixed-top-header-marker) [data-testid="stRadio"] {
-                margin-top: -6px !important;
-                padding-bottom: 6px !important;
+            div[data-testid="stHorizontalBlock"]:has(#fixed-top-header-marker) [data-testid="stRadio"] {
+                margin: 0 !important;
+                padding: 0 !important;
             }
-            div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
+            div[data-testid="stHorizontalBlock"]:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
                 justify-content: flex-end !important;
                 flex-wrap: nowrap !important;
                 align-items: center !important;
             }
+            [data-testid="stSidebar"] [data-testid="stRadio"] > div {
+                justify-content: flex-start !important;
+                align-items: flex-start !important;
+            }
             [data-testid="stSidebar"] {
-                background-color: #19283B !important;
-                border: none !important;
-                border-right: none !important;
+                background-color: #21252B !important;
+                border-right: 1px solid #333842 !important;
                 box-shadow: none !important;
-                min-width: 280px !important;
-                max-width: 280px !important;
-                transform: none !important;
-                margin-left: 0 !important;
-                visibility: visible !important;
-                display: block !important;
             }
-            [data-testid="stSidebar"] > div,
             [data-testid="stSidebar"] > div:first-child {
-                background-color: #19283B !important;
-                border: none !important;
-                border-right: none !important;
-                box-shadow: none !important;
-                width: 280px !important;
+                background-color: #21252B !important;
             }
-            [data-testid="stSidebarCollapseButton"],
-            [data-testid="collapsedControl"] {
+            [data-testid="stSidebarCollapseButton"] {
                 display: none !important;
             }
             [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
@@ -689,31 +674,31 @@ else:
             [data-testid="stSidebar"] label,
             [data-testid="stSidebar"] p,
             [data-testid="stSidebar"] span {
-                color: #FFFFFF !important;
+                color: #F3F4F6 !important;
             }
             h1 {
                 color: #FFFFFF !important;
                 font-weight: 500 !important;
             }
             h2, h3 {
-                color: #FFFFFF !important;
+                color: #F3F4F6 !important;
                 font-weight: 500 !important;
-                border-bottom: 1px solid #263B57 !important;
+                border-bottom: 1px solid #2C313A !important;
                 padding-bottom: 6px !important;
             }
             h4 {
-                color: #FFFFFF !important;
+                color: #E5E7EB !important;
                 font-weight: 500 !important;
             }
             [data-testid="stMetric"] {
-                background-color: #19283B !important;
-                border: 1px solid #2C4463 !important;
+                background-color: #21252B !important;
+                border: 1px solid #333842 !important;
                 border-left: 4px solid #4A86C5 !important;
                 border-radius: 8px !important;
                 padding: 12px 15px !important;
             }
             [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] p {
-                color: #E2EEFF !important;
+                color: #D1D5DB !important;
                 font-weight: 500 !important;
             }
             [data-testid="stMetricValue"], [data-testid="stMetricValue"] div {
@@ -721,25 +706,24 @@ else:
                 font-weight: 500 !important;
             }
             [data-testid="stMetricDelta"], [data-testid="stMetricDelta"] div {
-                background-color: #223752 !important;
-                color: #CBE4FF !important;
+                background-color: #2C313C !important;
+                color: #93C5FD !important;
                 border-radius: 5px !important;
                 padding: 2px 6px !important;
             }
-            /* Auswahlfelder (Selectbox / Multiselect) & Datei-Upload im Dunkelmodus */
             div[data-baseweb="select"] > div {
-                background-color: #1E3047 !important;
-                border-color: #365275 !important;
+                background-color: #21252B !important;
+                border-color: #3B4048 !important;
                 color: #FFFFFF !important;
             }
             [data-testid="stFileUploader"] section {
-                background-color: #1E3047 !important;
-                border-color: #365275 !important;
+                background-color: #21252B !important;
+                border-color: #3B4048 !important;
                 color: #FFFFFF !important;
             }
             [data-testid="stFileUploader"] button,
             [data-testid="stDownloadButton"] > button {
-                background-color: #263C59 !important;
+                background-color: #2C313A !important;
                 color: #FFFFFF !important;
                 border: 1px solid #4A86C5 !important;
                 border-radius: 6px !important;
@@ -764,9 +748,9 @@ else:
                 color: #FFFFFF !important;
             }
             [data-testid="stAlert"] {
-                background-color: #1C2E44 !important;
-                color: #FFFFFF !important;
-                border: 1px solid #345278 !important;
+                background-color: #21252B !important;
+                color: #F3F4F6 !important;
+                border: 1px solid #3B4048 !important;
             }
         </style>
         """,
@@ -840,6 +824,22 @@ with st.sidebar:
                 run_final_gate_all(cfg)
                 build_quality_report(cfg)
                 st.success("Eingangsordner erfolgreich verarbeitet.")
+
+    components.html(
+        """
+        <script>
+        try {
+            const doc = window.parent.document;
+            const sb = doc.querySelector('[data-testid="stSidebar"]');
+            if (sb && sb.getAttribute('aria-expanded') === 'false') {
+                const btn = doc.querySelector('[data-testid="collapsedControl"] button, [data-testid="stExpandSidebarButton"], [data-testid="collapsedControl"]');
+                if (btn) btn.click();
+            }
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+    )
 
 
 # ── DATEN FÜR GLOBALE KPIS LADEN ─────────────────────────────────────────────
