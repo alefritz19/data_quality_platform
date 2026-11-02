@@ -244,20 +244,51 @@ def build_column_transparency_table(
 cfg = load_config()
 init_database(cfg)
 
-# ── VEREINTE, FESTSTEHENDE KOPFLEISTE (PROGRAMMTITEL + STEUERUNG IN EINEM BLOCK) ─
+# ── VEREINTE, NAHTLOSE KOPFLEISTE MIT GOLDEN-BLAU-GRÜNEM EMBLEM ──────────────
 T = TEXTS[st.session_state["ui_lang"]]
+
+LOGO_SVG = (
+    '<svg width="44" height="44" viewBox="0 0 48 48" fill="none" '
+    'xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">'
+    '<defs>'
+    '<linearGradient id="goldGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">'
+    '<stop offset="0%" stop-color="#FFE066"/>'
+    '<stop offset="50%" stop-color="#F59E0B"/>'
+    '<stop offset="100%" stop-color="#D97706"/>'
+    '</linearGradient>'
+    '<linearGradient id="innerBg" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">'
+    '<stop offset="0%" stop-color="#1E3A5F"/>'
+    '<stop offset="100%" stop-color="#0F2942"/>'
+    '</linearGradient>'
+    '</defs>'
+    '<!-- Goldenes Wappen-Hexagon -->'
+    '<polygon points="24,2 44,13 44,35 24,46 4,35 4,13" fill="url(#goldGrad)" stroke="#FEF08A" stroke-width="1.5"/>'
+    '<polygon points="24,6 40,15 40,33 24,42 8,33 8,15" fill="url(#innerBg)"/>'
+    '<!-- Drei Parquet-Datensäulen (Blau, Smaragdgrün, Gold) -->'
+    '<rect x="14" y="25" width="4.5" height="9" rx="1.2" fill="#60A5FA"/>'
+    '<rect x="21.5" y="19" width="4.5" height="15" rx="1.2" fill="#10B981"/>'
+    '<rect x="29" y="14" width="4.5" height="20" rx="1.2" fill="#FACC15"/>'
+    '<!-- Goldener Qualitäts-Prüfbogen -->'
+    '<path d="M13 18 L20 23 L32 12" stroke="#FDE047" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'
+    '<circle cx="32" cy="12" r="2.3" fill="#10B981" stroke="#FDE047" stroke-width="1.2"/>'
+    '</svg>'
+)
+
 header_container = st.container()
 with header_container:
-    st.markdown('<div id="fixed-top-header-marker"></div>', unsafe_allow_html=True)
-    tb1, tb2, tb3 = st.columns([3.4, 0.85, 1.15], vertical_alignment="center")
+    tb1, tb2, tb3 = st.columns([3.5, 0.85, 1.15], vertical_alignment="center")
     with tb1:
         st.markdown(
+            f"<div id='fixed-top-header-marker' class='unified-header-wrap'>"
+            f"{LOGO_SVG}"
+            f"<div class='unified-header-text'>"
             f"<div class='unified-header-title'>{T['app_title']}</div>"
             f"<div class='unified-header-sub'>"
             f"Umgebung: <code>{cfg.app_env.upper()}</code> &nbsp;·&nbsp; "
             f"Engine: <code>DuckDB + Parquet (ZSTD)</code> &nbsp;·&nbsp; "
-            f"Quellen: <code>SMARD.de & DWD 01420</code> &nbsp;·&nbsp; "
-            f"{T['app_subtitle']}"
+            f"Quellen: <code>SMARD.de & DWD 01420</code>"
+            f"</div>"
+            f"</div>"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -305,48 +336,64 @@ if not is_dark:
             }
             .block-container {
                 padding-top: 0rem !important;
+                padding-left: 2.5rem !important;
+                padding-right: 2.5rem !important;
             }
             /* Haupthintergrund: klares Weiß */
             .stApp, [data-testid="stAppViewContainer"] {
                 background-color: #FFFFFF !important;
                 color: #2B3E54 !important;
             }
-            /* Vereinter Kopfbereich (Titel + Leiste): bewegt sich beim Scrollen NICHT */
+            /* Nahtlos mit dem linken Menü verbundene Kopfleiste (von ganz links bis ganz rechts) */
             .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
             div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker) {
                 position: sticky !important;
                 top: 0 !important;
                 z-index: 9999 !important;
                 background-color: #E8F2FC !important;
-                border-bottom: 1px solid #CBE0F5 !important;
-                padding: 10px 20px 10px 20px !important;
-                margin-left: -1rem !important;
-                margin-right: -1rem !important;
-                margin-bottom: 14px !important;
-                box-shadow: 0 2px 6px rgba(44, 72, 102, 0.06) !important;
+                border-bottom: 1px solid #C5DCF2 !important;
+                padding: 14px 2.5rem 16px 2.5rem !important;
+                margin-left: -2.5rem !important;
+                margin-right: -2.5rem !important;
+                margin-bottom: 18px !important;
+                box-shadow: 0 2px 6px rgba(44, 72, 102, 0.05) !important;
+            }
+            .unified-header-wrap {
+                display: flex !important;
+                align-items: center !important;
+                gap: 14px !important;
+            }
+            .unified-header-text {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: center !important;
+                gap: 4px !important;
             }
             .unified-header-title {
-                color: #2C4866 !important;
-                font-size: 1.55rem !important;
+                color: #26425E !important;
+                font-size: 1.52rem !important;
                 font-weight: 500 !important;
-                line-height: 1.25 !important;
-                margin-bottom: 3px !important;
+                line-height: 1.2 !important;
+                margin: 0 !important;
             }
             .unified-header-sub {
-                color: #416182 !important;
-                font-size: 0.84rem !important;
+                color: #3E5E7E !important;
+                font-size: 0.85rem !important;
+                line-height: 1.3 !important;
+                margin: 0 !important;
                 white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
             }
             .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
                 justify-content: flex-end !important;
                 flex-wrap: nowrap !important;
             }
-            /* Linke Seitenleiste: sanftes Hellblau */
+            /* Linke Seitenleiste: exakt derselbe Ton (#E8F2FC), nahtloser Übergang oben */
             [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {
                 background-color: #E8F2FC !important;
-                border-right: 1px solid #CBE0F5 !important;
+                border-right: 1px solid #C5DCF2 !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+                padding-top: 1.1rem !important;
             }
             [data-testid="stSidebar"] h1,
             [data-testid="stSidebar"] h2,
@@ -356,22 +403,29 @@ if not is_dark:
             [data-testid="stSidebar"] .stMarkdown p {
                 color: #2C4866 !important;
             }
-            /* Überschriften: ruhiges, nicht übersättigtes Dunkelblau und nicht zu fett */
+            /* Überschriften im Hauptbereich mit feiner Unterlinie */
             h1 {
                 color: #2C4866 !important;
                 font-weight: 500 !important;
-                letter-spacing: -0.2px !important;
             }
-            h2, h3, h4 {
+            h2, h3 {
+                color: #2E4C6B !important;
+                font-weight: 500 !important;
+                border-bottom: 1px solid #E3EEF9 !important;
+                padding-bottom: 6px !important;
+            }
+            h4 {
                 color: #325070 !important;
                 font-weight: 500 !important;
             }
-            /* KPI-Karten */
+            /* KPI-Karten mit feinem Akzentrand links */
             [data-testid="stMetric"] {
-                background-color: #F6FAFF !important;
-                border: 1px solid #CFE2F7 !important;
+                background-color: #F7FAFF !important;
+                border: 1px solid #D0E3F7 !important;
+                border-left: 4px solid #4A86C5 !important;
                 border-radius: 8px !important;
-                padding: 12px 14px !important;
+                padding: 12px 15px !important;
+                box-shadow: 0 1px 4px rgba(44, 72, 102, 0.04) !important;
             }
             [data-testid="stMetricLabel"] {
                 color: #365678 !important;
@@ -458,6 +512,8 @@ else:
             }
             .block-container {
                 padding-top: 0rem !important;
+                padding-left: 2.5rem !important;
+                padding-right: 2.5rem !important;
             }
             .stApp, [data-testid="stAppViewContainer"] {
                 background-color: #121D2B !important;
@@ -479,13 +535,12 @@ else:
             [data-testid="stCheckbox"] label span {
                 color: #F8FAFC !important;
             }
-            /* Inline-Code-Tags im Dunkelmodus */
             code {
                 background-color: #243852 !important;
                 color: #E2F0FF !important;
                 border: 1px solid #365275 !important;
             }
-            /* Vereinter Kopfbereich (Titel + Leiste): bewegt sich beim Scrollen NICHT */
+            /* Nahtlos verbundener Kopfbereich im Dunkelmodus */
             .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
             div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker) {
                 position: sticky !important;
@@ -493,25 +548,36 @@ else:
                 z-index: 9999 !important;
                 background-color: #19283B !important;
                 border-bottom: 1px solid #2A405C !important;
-                padding: 10px 20px 10px 20px !important;
-                margin-left: -1rem !important;
-                margin-right: -1rem !important;
-                margin-bottom: 14px !important;
+                padding: 14px 2.5rem 16px 2.5rem !important;
+                margin-left: -2.5rem !important;
+                margin-right: -2.5rem !important;
+                margin-bottom: 18px !important;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+            }
+            .unified-header-wrap {
+                display: flex !important;
+                align-items: center !important;
+                gap: 14px !important;
+            }
+            .unified-header-text {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: center !important;
+                gap: 4px !important;
             }
             .unified-header-title {
                 color: #FFFFFF !important;
-                font-size: 1.55rem !important;
+                font-size: 1.52rem !important;
                 font-weight: 500 !important;
-                line-height: 1.25 !important;
-                margin-bottom: 3px !important;
+                line-height: 1.2 !important;
+                margin: 0 !important;
             }
             .unified-header-sub {
                 color: #DCE7F3 !important;
-                font-size: 0.84rem !important;
+                font-size: 0.85rem !important;
+                line-height: 1.3 !important;
+                margin: 0 !important;
                 white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
             }
             .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
                 justify-content: flex-end !important;
@@ -520,6 +586,9 @@ else:
             [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {
                 background-color: #19283B !important;
                 border-right: 1px solid #2A405C !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+                padding-top: 1.1rem !important;
             }
             [data-testid="stSidebar"] h1,
             [data-testid="stSidebar"] h2,
@@ -530,15 +599,26 @@ else:
             [data-testid="stSidebar"] span {
                 color: #FFFFFF !important;
             }
-            h1, h2, h3, h4 {
+            h1 {
+                color: #FFFFFF !important;
+                font-weight: 500 !important;
+            }
+            h2, h3 {
+                color: #FFFFFF !important;
+                font-weight: 500 !important;
+                border-bottom: 1px solid #263B57 !important;
+                padding-bottom: 6px !important;
+            }
+            h4 {
                 color: #FFFFFF !important;
                 font-weight: 500 !important;
             }
             [data-testid="stMetric"] {
                 background-color: #19283B !important;
                 border: 1px solid #2C4463 !important;
+                border-left: 4px solid #4A86C5 !important;
                 border-radius: 8px !important;
-                padding: 12px 14px !important;
+                padding: 12px 15px !important;
             }
             [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] p {
                 color: #E2EEFF !important;
