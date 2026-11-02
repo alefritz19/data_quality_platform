@@ -6,6 +6,47 @@ Der Fokus des Projekts liegt auf Nachvollziehbarkeit: Daten werden beim Einlesen
 
 ---
 
+## Impressionen der Plattform (DEMO-Laufzeitumgebung)
+
+### 1. Übersicht, Quellenerfassung & Parquet-Konvertierung
+Dokumentation der Originalquellen (Bundesnetzagentur / SMARD.de & Deutscher Wetterdienst / DWD), automatisches Chunking, Parquet-ZSTD-Kompression und Freigabeprüfung (`final_gate`).
+
+![Übersicht & Datenquellen](assets/01_uebersicht_quellen.png)
+
+---
+
+### 2. Zweistufige Qualitätsprüfung (`quality_log` & `Isolation Forest`)
+Stufe 1 (Regelwerk) prüft fehlende Werte, Duplikate, Wertebereiche und statistische Ausreißer (`1,5 × IQR`, `|z-Score| > 3,0`). Stufe 2 nutzt Isolation Forest auf Zeitreihen, ohne Daten zu verändern.
+
+![Qualitätsprüfungen](assets/02_qualitaetspruefungen.png)
+
+---
+
+### 3. Wählbare KPI-Karten, Transparenz-Matrix & Dateneinsicht
+Flexibel konfigurierbare Kennzahlenkarten für jede freigegebene Tabelle im Schema `mart`, Spalten-Steckbrief mit Vollständigkeitsgrad und Dateninspektion.
+
+![Wählbare KPI-Karten & Transparenz-Matrix](assets/04_kpi_karten_matrix.png)
+
+![Datenvorschau & konfigurierbare Diagramme](assets/05_daten_vorschau_diagramme.png)
+
+---
+
+### 4. Transparenter Umgang mit nicht verarbeitbaren Einträgen
+Dateien oder Einzelwerte, die beim Staging nicht konvertiert werden können, werden gesondert mit Herkunft und Fehlerursache erfasst.
+
+![Nicht verarbeitbare Daten](assets/03_nicht_verarbeitbar.png)
+
+---
+
+### 5. Regelbasierter Qualitätsbericht & Bereitstellung mit automatischer Löschfrist
+Automatisierte Erstellung von Markdown-Qualitätsberichten und Bereitstellung fertiger Download-Pakete (`.parquet`, `.md`, `.zip`) mit TTL-Speicherbegrenzung.
+
+![Regelbasierter Qualitätsbericht](assets/06_qualitaetsbericht.png)
+
+![Bereitstellung & Download](assets/07_bereitstellung_download.png)
+
+---
+
 ## Technischer Aufbau & Funktionen
 
 * **Nachvollziehbare Datenquellen (`metadata.quellen`):** Verarbeitung öffentlicher Originaldaten der Bundesnetzagentur (SMARD.de) und des Deutschen Wetterdienstes (DWD, Messstation 01420 Frankfurt am Main). Jede Quelle wird mit Name, Abruf-URL, Lizenz und Zeitstempel dokumentiert.
@@ -38,6 +79,7 @@ Der Fokus des Projekts liegt auf Nachvollziehbarkeit: Daten werden beim Einlesen
 
 ```text
 data_quality_platform/
+├── assets/                     # Screenshot-Dokumentation der Oberfläche
 ├── src/                        # Kernmodule der Pipeline
 │   ├── config.py               # Zentrale Konfiguration über Umgebungsvariablen (PROD / DEMO)
 │   ├── db.py                   # DuckDB-Schemata (metadata, staging, mart)
@@ -92,23 +134,6 @@ APP_ENV=demo DATA_DIR=./data/demo DEMO_READ_ONLY=true ADMIN_PIN=2026 \
 ```
 
 ---
-
-## Umgesetzte Meilensteine (14-Schritte-Plan)
-
-* [x] **Schritt 1:** Projektgerüst, Git, `.gitignore`, `.env.example`, `CLAUDE.md`
-* [x] **Schritt 2:** Erste reale Datenquelle anbinden (`raw` + Tabelle `metadata.quellen`)
-* [x] **Schritt 3:** Dateiannahme (`inbox`), Parquet-Konvertierung und Chunking
-* [x] **Schritt 4:** Staging mit DuckDB (`staging` + Protokollierung nicht konvertierbarer Werte)
-* [x] **Schritt 5:** Qualitätsprüfungen und `metadata.quality_log` (inkl. Abschnitt „Nicht verarbeitbar“)
-* [x] **Schritt 6:** Abschließende Prüfung vor der Visualisierung (`final_gate` → `mart`)
-* [x] **Schritt 7:** Dagster: Assets, Asset Checks, Schedules, Sensor für den Eingangsordner
-* [x] **Schritt 8:** Streamlit: KPI-Karten, Tabellen, wählbare Diagramme (`dashboard/app.py`)
-* [x] **Schritt 9:** Regelbasierter Bericht mit konkreten Empfehlungen (`src/report_generator.py`)
-* [x] **Schritt 10:** Bereitstellung fertiger Daten (Download, TTL-Auto-Löschung und Speicherlimits)
-* [x] **Schritt 11:** Demo- und Prod-Kontur (`docker-compose.prod.yml`, `docker-compose.demo.yml`, Limits, Schreibschutz)
-* [x] **Schritt 12:** Weitere reale Quellen hinzufügen (Deutscher Wetterdienst / DWD Station 01420 Frankfurt/Main)
-* [x] **Schritt 13:** Lernende Anomalieprüfung (zweite Stufe: Isolation Forest mit erklärbarer Begründung in `metadata.ml_anomaly_flags`)
-* [x] **Schritt 14:** Deployment von `PROD` (`8502`) und `DEMO` (`8503`) auf dem Server sowie Dokumentation der realen Messwerte
 
 ## Lizenz
 
