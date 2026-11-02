@@ -1,4 +1,4 @@
-# Transparente Plattform für Datenqualität und Parquet-Verarbeitung
+﻿# Transparente Plattform für Datenqualität und Parquet-Verarbeitung
 
 Technische Anwendung zur Dateiannahme, Parquet-Konvertierung (ZSTD) und mehrstufigen Qualitätsprüfung realer, öffentlicher Datensätze mit Python, DuckDB, Dagster und Streamlit.
 
@@ -129,7 +129,7 @@ APP_ENV=prod DATA_DIR=./data/prod DEMO_READ_ONLY=false \
   streamlit run dashboard/app.py --server.port 8502
 
 # Öffentliche Demoversion (DEMO) mit aktiviertem Schreibschutz auf Port 8503:
-APP_ENV=demo DATA_DIR=./data/demo DEMO_READ_ONLY=true ADMIN_PIN=2026 \
+APP_ENV=demo DATA_DIR=./data/demo DEMO_READ_ONLY=true ADMIN_PIN=<eigener_pin> \
   streamlit run dashboard/app.py --server.port 8503
 ```
 
