@@ -31,7 +31,7 @@ from src.report_generator import build_quality_report
 from src.staging_loader import stage_all_parquet_files
 
 TECHNICAL_ID_COLUMNS = {"timestamp_ms", "dwd_station_id", "row_index", "id"}
-CALM_BLUE_PALETTE = ["#2B5B84", "#4A7DA5", "#6E9EC0", "#94B9D4", "#5B8291", "#88A8B8"]
+CALM_BLUE_PALETTE = ["#2563EB", "#3B82F6", "#60A5FA", "#93C5FD", "#1D4ED8", "#7DD3FC"]
 
 st.set_page_config(
     page_title="Plattform für Datenqualität | DuckDB · Parquet · Dagster",
@@ -39,60 +39,59 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Ruhiges, helles Farbschema (Weiß & Hellblau/Dunkelblau, keine grellen Ampelfarben)
+# Helles, klares Farbschema in Reinweiß, Himmelblau und klassischem Blau
 st.markdown(
     """
     <style>
-        /* Haupthintergrund: klares, angenehmes Weiß */
+        /* Haupthintergrund: klares, reines Weiß */
         .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
             background-color: #FFFFFF !important;
             color: #1E293B !important;
         }
-        /* Linke Seitenleiste: sanftes Hellblau mit dunkelblauer Schrift */
+        /* Linke Seitenleiste: frisches, angenehmes Hellblau (ohne Grau-/Grünstich) */
         [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {
-            background-color: #EAF2FA !important;
-            border-right: 1px solid #CFE0F0 !important;
+            background-color: #E2EEFF !important;
+            border-right: 1px solid #BFD7FF !important;
         }
         [data-testid="stSidebar"] h1,
         [data-testid="stSidebar"] h2,
         [data-testid="stSidebar"] h3,
         [data-testid="stSidebar"] h4,
         [data-testid="stSidebar"] label,
-        [data-testid="stSidebar"] p,
-        [data-testid="stSidebar"] span {
-            color: #1B3B5A !important;
+        [data-testid="stSidebar"] .stMarkdown p {
+            color: #1E3A8A !important;
         }
-        /* Überschriften im Hauptbereich in ruhigem Dunkelblau */
+        /* Überschriften im Hauptbereich in klarem Blau */
         h1, h2, h3, h4 {
-            color: #1B3B5A !important;
+            color: #1E3A8A !important;
         }
-        /* KPI-Karten: dezenter hellblauer Rahmen auf hellem Grund */
+        /* KPI-Karten: hellblauer Rahmen auf zartblau-weißem Grund */
         [data-testid="stMetric"] {
-            background-color: #F7FAFD !important;
-            border: 1px solid #D6E4F0 !important;
+            background-color: #F4F8FF !important;
+            border: 1px solid #C7DCFF !important;
             border-radius: 8px !important;
             padding: 12px 14px !important;
         }
         [data-testid="stMetricLabel"] {
-            color: #335270 !important;
+            color: #1E40AF !important;
             font-weight: 600 !important;
         }
         [data-testid="stMetricValue"] {
-            color: #16324F !important;
+            color: #172554 !important;
         }
-        /* KPI-Delta-Badges: sanftes Blaugrau/Salbei statt grellem Ampelgrün */
+        /* KPI-Delta-Badges: klares Hellblau mit blauer Schrift statt Grün */
         [data-testid="stMetricDelta"] {
-            background-color: #E6F0F8 !important;
-            color: #2B5B84 !important;
+            background-color: #DBEAFE !important;
+            color: #1D4ED8 !important;
             border-radius: 5px !important;
             padding: 2px 6px !important;
         }
         [data-testid="stMetricDelta"] svg {
-            fill: #2B5B84 !important;
+            fill: #1D4ED8 !important;
         }
-        /* Ausgewählte Tags (Multiselect) in ruhigem Dunkelblau statt Rot */
+        /* Ausgewählte Tags (Multiselect) in klarem Blau mit weißer Schrift */
         span[data-baseweb="tag"] {
-            background-color: #2B5B84 !important;
+            background-color: #2563EB !important;
             color: #FFFFFF !important;
             border-radius: 5px !important;
         }
@@ -100,27 +99,51 @@ st.markdown(
             color: #FFFFFF !important;
             fill: #FFFFFF !important;
         }
-        /* Auswahlfelder & Buttons in abgestimmtem Blau */
+        /* Auswahlfelder */
         div[data-baseweb="select"] > div {
-            border-color: #C5D9EB !important;
-            background-color: #FAFCFF !important;
+            border-color: #BFDBFE !important;
+            background-color: #F8FBFF !important;
         }
-        .stButton > button {
-            background-color: #2B5B84 !important;
+        /* Alle Aktions-Buttons: angenehmes Blau mit reinweißer, gut lesbarer Schrift */
+        .stButton > button,
+        [data-testid="stSidebar"] .stButton > button {
+            background-color: #2563EB !important;
             color: #FFFFFF !important;
-            border: 1px solid #234B6E !important;
+            border: 1px solid #1D4ED8 !important;
+            border-radius: 6px !important;
+            font-weight: 500 !important;
+        }
+        .stButton > button p,
+        .stButton > button span,
+        [data-testid="stSidebar"] .stButton > button p,
+        [data-testid="stSidebar"] .stButton > button span {
+            color: #FFFFFF !important;
+        }
+        .stButton > button:hover,
+        [data-testid="stSidebar"] .stButton > button:hover {
+            background-color: #1D4ED8 !important;
+            color: #FFFFFF !important;
+            border-color: #1E40AF !important;
+        }
+        /* Download-Buttons & Datei-Upload-Button in hellem Himmelblau mit dunkelblauer Schrift */
+        [data-testid="stDownloadButton"] > button,
+        [data-testid="stFileUploader"] button {
+            background-color: #EFF6FF !important;
+            color: #1E40AF !important;
+            border: 1px solid #93C5FD !important;
             border-radius: 6px !important;
         }
-        .stButton > button:hover {
-            background-color: #1F4568 !important;
-            color: #FFFFFF !important;
-            border-color: #1A3A57 !important;
+        [data-testid="stDownloadButton"] > button p,
+        [data-testid="stDownloadButton"] > button span,
+        [data-testid="stFileUploader"] button p,
+        [data-testid="stFileUploader"] button span {
+            color: #1E40AF !important;
         }
-        /* Dezente Info- und Statusboxen ohne grelles Grün/Rot */
+        /* Info- und Statusboxen in reinem Hellblau */
         [data-testid="stAlert"] {
-            background-color: #F0F6FC !important;
-            color: #1E3A5F !important;
-            border: 1px solid #C8DDF0 !important;
+            background-color: #EFF6FF !important;
+            color: #1E3A8A !important;
+            border: 1px solid #BFDBFE !important;
         }
     </style>
     """,
