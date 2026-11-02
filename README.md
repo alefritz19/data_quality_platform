@@ -39,7 +39,8 @@ data_quality_platform/
 * [x] **Schritt 2:** Erste reale Datenquelle anbinden (`raw` + Tabelle `metadata.quellen`)
 * [x] **Schritt 3:** Dateiannahme (`inbox`), Parquet-Konvertierung und Chunking
 * [x] **Schritt 4:** Staging mit DuckDB (`staging` + Protokollierung nicht konvertierbarer Werte)
-* [ ] **Schritt 5:** Qualitätsprüfungen und `quality_log`
+* [x] **Schritt 5:** Qualitätsprüfungen und `metadata.quality_log` (inkl. Abschnitt „Nicht verarbeitbar“)
+* [ ] **Schritt 6:** Abschließende Prüfung vor der Visualisierung (Gatekeeper-Schritt)
 
 ## Angebundene Datenquellen (`metadata.quellen`)
 

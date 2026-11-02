@@ -90,6 +90,27 @@ def init_database(config: Optional[AppConfig] = None) -> None:
             );
             """
         )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS metadata.quality_log (
+                check_id VARCHAR PRIMARY KEY,
+                run_id VARCHAR NOT NULL,
+                stage VARCHAR NOT NULL,
+                source_name VARCHAR NOT NULL,
+                table_name VARCHAR NOT NULL,
+                column_name VARCHAR NOT NULL,
+                rule_name VARCHAR NOT NULL,
+                affected_count BIGINT NOT NULL,
+                total_count BIGINT NOT NULL,
+                share_pct DOUBLE NOT NULL,
+                is_recurring BOOLEAN NOT NULL,
+                priority_level VARCHAR NOT NULL,
+                explanation VARCHAR NOT NULL,
+                checked_at TIMESTAMP NOT NULL
+            );
+            """
+        )
     finally:
         conn.close()
 
