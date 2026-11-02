@@ -31,11 +31,100 @@ from src.report_generator import build_quality_report
 from src.staging_loader import stage_all_parquet_files
 
 TECHNICAL_ID_COLUMNS = {"timestamp_ms", "dwd_station_id", "row_index", "id"}
+CALM_BLUE_PALETTE = ["#2B5B84", "#4A7DA5", "#6E9EC0", "#94B9D4", "#5B8291", "#88A8B8"]
 
 st.set_page_config(
     page_title="Plattform für Datenqualität | DuckDB · Parquet · Dagster",
     layout="wide",
     initial_sidebar_state="expanded",
+)
+
+# Ruhiges, helles Farbschema (Weiß & Hellblau/Dunkelblau, keine grellen Ampelfarben)
+st.markdown(
+    """
+    <style>
+        /* Haupthintergrund: klares, angenehmes Weiß */
+        .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+            background-color: #FFFFFF !important;
+            color: #1E293B !important;
+        }
+        /* Linke Seitenleiste: sanftes Hellblau mit dunkelblauer Schrift */
+        [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {
+            background-color: #EAF2FA !important;
+            border-right: 1px solid #CFE0F0 !important;
+        }
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] h4,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span {
+            color: #1B3B5A !important;
+        }
+        /* Überschriften im Hauptbereich in ruhigem Dunkelblau */
+        h1, h2, h3, h4 {
+            color: #1B3B5A !important;
+        }
+        /* KPI-Karten: dezenter hellblauer Rahmen auf hellem Grund */
+        [data-testid="stMetric"] {
+            background-color: #F7FAFD !important;
+            border: 1px solid #D6E4F0 !important;
+            border-radius: 8px !important;
+            padding: 12px 14px !important;
+        }
+        [data-testid="stMetricLabel"] {
+            color: #335270 !important;
+            font-weight: 600 !important;
+        }
+        [data-testid="stMetricValue"] {
+            color: #16324F !important;
+        }
+        /* KPI-Delta-Badges: sanftes Blaugrau/Salbei statt grellem Ampelgrün */
+        [data-testid="stMetricDelta"] {
+            background-color: #E6F0F8 !important;
+            color: #2B5B84 !important;
+            border-radius: 5px !important;
+            padding: 2px 6px !important;
+        }
+        [data-testid="stMetricDelta"] svg {
+            fill: #2B5B84 !important;
+        }
+        /* Ausgewählte Tags (Multiselect) in ruhigem Dunkelblau statt Rot */
+        span[data-baseweb="tag"] {
+            background-color: #2B5B84 !important;
+            color: #FFFFFF !important;
+            border-radius: 5px !important;
+        }
+        span[data-baseweb="tag"] span, span[data-baseweb="tag"] svg {
+            color: #FFFFFF !important;
+            fill: #FFFFFF !important;
+        }
+        /* Auswahlfelder & Buttons in abgestimmtem Blau */
+        div[data-baseweb="select"] > div {
+            border-color: #C5D9EB !important;
+            background-color: #FAFCFF !important;
+        }
+        .stButton > button {
+            background-color: #2B5B84 !important;
+            color: #FFFFFF !important;
+            border: 1px solid #234B6E !important;
+            border-radius: 6px !important;
+        }
+        .stButton > button:hover {
+            background-color: #1F4568 !important;
+            color: #FFFFFF !important;
+            border-color: #1A3A57 !important;
+        }
+        /* Dezente Info- und Statusboxen ohne grelles Grün/Rot */
+        [data-testid="stAlert"] {
+            background-color: #F0F6FC !important;
+            color: #1E3A5F !important;
+            border: 1px solid #C8DDF0 !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 
@@ -489,8 +578,10 @@ elif selected_section.startswith("2."):
                 orientation="h",
                 title="Anzahl betroffener Einträge je Qualitätsregel",
                 labels={"affected_count": "Anzahl Befunde", "rule_name": "Regel"},
+                template="plotly_white",
+                color_discrete_sequence=CALM_BLUE_PALETTE,
             )
-            fig_q.update_layout(height=340)
+            fig_q.update_layout(height=340, paper_bgcolor="#FFFFFF", plot_bgcolor="#FAFCFF")
             st.plotly_chart(fig_q, use_container_width=True)
         elif not filtered.empty and q_chart_choice.startswith("Liniendiagramm"):
             agg_line = (
@@ -505,8 +596,10 @@ elif selected_section.startswith("2."):
                 markers=True,
                 title="Maximaler Anteil betroffener Zeilen (%) je Spalte",
                 labels={"column_name": "Spalte", "share_pct": "Anteil (%)"},
+                template="plotly_white",
+                color_discrete_sequence=CALM_BLUE_PALETTE,
             )
-            fig_q.update_layout(height=340)
+            fig_q.update_layout(height=340, paper_bgcolor="#FFFFFF", plot_bgcolor="#FAFCFF")
             st.plotly_chart(fig_q, use_container_width=True)
         elif not filtered.empty and q_chart_choice.startswith("Kreisdiagramm"):
             agg_col = (
@@ -518,8 +611,10 @@ elif selected_section.startswith("2."):
                 names="column_name",
                 values="affected_count",
                 title="Anteil der Qualitätsbefunde nach Spalte",
+                template="plotly_white",
+                color_discrete_sequence=CALM_BLUE_PALETTE,
             )
-            fig_q.update_layout(height=340)
+            fig_q.update_layout(height=340, paper_bgcolor="#FFFFFF")
             st.plotly_chart(fig_q, use_container_width=True)
 
         st.markdown("---")
@@ -873,8 +968,10 @@ elif selected_section.startswith("4."):
                     y=["Minimum", "Durchschnitt", "Maximum"],
                     markers=True,
                     title=f"Tages-Korridor (Min / Ø / Max): {comb_metric}",
+                    template="plotly_white",
+                    color_discrete_sequence=CALM_BLUE_PALETTE,
                 )
-                fig_comb.update_layout(height=380)
+                fig_comb.update_layout(height=380, paper_bgcolor="#FFFFFF", plot_bgcolor="#FAFCFF")
                 st.plotly_chart(fig_comb, use_container_width=True)
 
         # ── TEIL C: IMMER SICHTBARES, WÄHLBARES DIAGRAMM (LINIE, BALKEN, KREIS) ─
@@ -954,8 +1051,10 @@ elif selected_section.startswith("4."):
                         markers=True,
                         title=f"Liniendiagramm: {y_col} nach {x_plot} ({title_suffix} · mart.{chosen_table})",
                         labels={x_plot: x_plot, y_plot: y_col},
+                        template="plotly_white",
+                        color_discrete_sequence=CALM_BLUE_PALETTE,
                     )
-                    fig_m.update_layout(height=400)
+                    fig_m.update_layout(height=400, paper_bgcolor="#FFFFFF", plot_bgcolor="#FAFCFF")
                     st.plotly_chart(fig_m, use_container_width=True)
 
                 elif plot_type == "Balkendiagramm":
@@ -966,8 +1065,10 @@ elif selected_section.startswith("4."):
                         text_auto=".2f" if len(plot_data) <= 35 else False,
                         title=f"Balkendiagramm: {y_col} nach {x_plot} ({title_suffix} · mart.{chosen_table})",
                         labels={x_plot: x_plot, y_plot: y_col},
+                        template="plotly_white",
+                        color_discrete_sequence=CALM_BLUE_PALETTE,
                     )
-                    fig_m.update_layout(height=400)
+                    fig_m.update_layout(height=400, paper_bgcolor="#FFFFFF", plot_bgcolor="#FAFCFF")
                     st.plotly_chart(fig_m, use_container_width=True)
 
                 elif plot_type == "Kreisdiagramm":
@@ -998,8 +1099,10 @@ elif selected_section.startswith("4."):
                                 values="Anzahl_Stunden",
                                 hole=0.3,
                                 title=f"Kreisdiagramm: Verteilung von '{y_col}' nach Wertebereichen & Lücken (mart.{chosen_table})",
+                                template="plotly_white",
+                                color_discrete_sequence=CALM_BLUE_PALETTE,
                             )
-                            fig_m.update_layout(height=420)
+                            fig_m.update_layout(height=420, paper_bgcolor="#FFFFFF")
                             st.plotly_chart(fig_m, use_container_width=True)
                         else:
                             st.info("Keine gültigen Zahlenwerte für Kreisdiagramm vorhanden.")
@@ -1015,8 +1118,10 @@ elif selected_section.startswith("4."):
                             values=y_col,
                             hole=0.3,
                             title=f"Kreisdiagramm: Anteile von '{y_col}' nach '{x_col}' (mart.{chosen_table})",
+                            template="plotly_white",
+                            color_discrete_sequence=CALM_BLUE_PALETTE,
                         )
-                        fig_m.update_layout(height=420)
+                        fig_m.update_layout(height=420, paper_bgcolor="#FFFFFF")
                         st.plotly_chart(fig_m, use_container_width=True)
 
 
