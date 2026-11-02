@@ -500,16 +500,22 @@ if not is_dark:
                 fill: #35628C !important;
             }
             /* Multiselect-Tags in sanftem Mittelblau statt Rot */
+            [data-testid="stMultiSelect"] [data-tag],
+            .ew56mvo3,
             span[data-baseweb="tag"] {
                 background-color: #4A86C5 !important;
                 color: #FFFFFF !important;
                 border-radius: 5px !important;
             }
-            span[data-baseweb="tag"] span, span[data-baseweb="tag"] svg {
+            [data-testid="stMultiSelect"] [data-tag] *,
+            span[data-baseweb="tag"] span,
+            span[data-baseweb="tag"] svg {
                 color: #FFFFFF !important;
                 fill: #FFFFFF !important;
             }
-            /* Auswahlfelder */
+            /* Auswahlfelder im Hell-Modus */
+            [data-testid="stSelectbox"] .e1oobldh0,
+            [data-testid="stMultiSelect"] .ew56mvo0,
             div[data-baseweb="select"] > div {
                 border-color: #C5DCF2 !important;
                 background-color: #F9FCFF !important;
@@ -735,15 +741,122 @@ else:
                 border-radius: 5px !important;
                 padding: 2px 6px !important;
             }
-            div[data-baseweb="select"] > div {
+            /* Alle Auswahlfenster (Streamlit 1.66 React-Aria Selectbox & Multiselect + BaseWeb) dunkel mit weißer Schrift */
+            [data-testid="stSelectbox"] .e1oobldh0,
+            [data-testid="stSelectbox"] > div > div,
+            [data-testid="stMultiSelect"] .ew56mvo0,
+            [data-testid="stMultiSelect"] > div > div,
+            [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+            [data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
+            div[data-baseweb="select"] > div,
+            div[data-baseweb="base-input"],
+            div[data-baseweb="input"] {
                 background-color: #21252B !important;
-                border-color: #3B4048 !important;
+                border: 1px solid #3B4048 !important;
+                border-radius: 6px !important;
                 color: #FFFFFF !important;
             }
-            [data-testid="stFileUploader"] section {
+            [data-testid="stSelectbox"] input,
+            [data-testid="stSelectbox"] .e1oobldh1,
+            [data-testid="stMultiSelect"] input,
+            [data-testid="stMultiSelect"] .ew56mvo6,
+            [data-testid="stSelectbox"] div[data-baseweb="select"] div,
+            [data-testid="stMultiSelect"] div[data-baseweb="select"] div,
+            div[data-baseweb="select"] span,
+            div[data-baseweb="select"] input,
+            div[data-baseweb="base-input"] input {
+                background-color: transparent !important;
+                color: #FFFFFF !important;
+                -webkit-text-fill-color: #FFFFFF !important;
+                caret-color: #FFFFFF !important;
+            }
+            [data-testid="stSelectbox"] input::placeholder,
+            [data-testid="stMultiSelect"] input::placeholder {
+                color: #9CA3AF !important;
+                -webkit-text-fill-color: #9CA3AF !important;
+            }
+            [data-testid="stSelectbox"] button,
+            [data-testid="stMultiSelect"] button,
+            [data-testid="stSelectbox"] svg,
+            [data-testid="stMultiSelect"] svg,
+            div[data-baseweb="select"] svg {
+                color: #F3F4F6 !important;
+                fill: #F3F4F6 !important;
+            }
+            /* Geöffnete Dropdown-Listen (stSelectboxVirtualDropdown & stMultiSelectDropdown) */
+            [data-testid="stSelectboxVirtualDropdown"],
+            [data-testid="stMultiSelectDropdown"],
+            .e1oobldh4,
+            .ew56mvo9,
+            div[data-baseweb="popover"],
+            div[data-baseweb="popover"] > div,
+            div[data-baseweb="menu"],
+            ul[data-baseweb="menu"],
+            [data-testid="stVirtualDropdown"] {
+                background-color: #21252B !important;
+                border: 1px solid #3B4048 !important;
+                color: #FFFFFF !important;
+            }
+            [data-testid="stSelectboxVirtualDropdown"] [role="option"],
+            [data-testid="stMultiSelectDropdown"] [role="option"],
+            .e1oobldh7,
+            .ew56mvo12,
+            ul[data-baseweb="menu"] li,
+            li[role="option"],
+            div[role="option"] {
+                background-color: #21252B !important;
+                color: #F3F4F6 !important;
+            }
+            [data-testid="stSelectboxVirtualDropdown"] [role="option"] *,
+            [data-testid="stMultiSelectDropdown"] [role="option"] *,
+            ul[data-baseweb="menu"] li *,
+            li[role="option"] *,
+            div[role="option"] * {
+                color: #F3F4F6 !important;
+            }
+            [data-testid="stSelectboxVirtualDropdown"] [role="option"][data-hovered] [data-item-hl],
+            [data-testid="stSelectboxVirtualDropdown"] [role="option"][data-focused] [data-item-hl],
+            [data-testid="stMultiSelectDropdown"] [role="option"][data-hovered] [data-item-hl],
+            [data-testid="stMultiSelectDropdown"] [role="option"][data-focused] [data-item-hl],
+            ul[data-baseweb="menu"] li:hover,
+            li[role="option"]:hover,
+            div[role="option"]:hover,
+            li[role="option"][aria-selected="true"] {
+                background-color: #3D73AD !important;
+                color: #FFFFFF !important;
+            }
+            /* Ausgewählte Tags im Multiselect-Feld ([data-tag] & data-baseweb="tag") */
+            [data-testid="stMultiSelect"] [data-tag],
+            .ew56mvo3,
+            span[data-baseweb="tag"] {
+                background-color: #3D73AD !important;
+                border: 1px solid #4E86C2 !important;
+                color: #FFFFFF !important;
+                border-radius: 5px !important;
+            }
+            [data-testid="stMultiSelect"] [data-tag] *,
+            span[data-baseweb="tag"] span,
+            span[data-baseweb="tag"] svg {
+                color: #FFFFFF !important;
+                fill: #FFFFFF !important;
+            }
+            /* Expander & Datei-Uploader im Matte-Dark-Modus */
+            [data-testid="stExpander"],
+            [data-testid="stExpander"] details,
+            [data-testid="stExpander"] summary {
                 background-color: #21252B !important;
                 border-color: #3B4048 !important;
-                color: #FFFFFF !important;
+                color: #F3F4F6 !important;
+            }
+            [data-testid="stFileUploader"] section,
+            [data-testid="stFileUploaderDropzone"] {
+                background-color: #181A1F !important;
+                border: 1px dashed #3B4048 !important;
+                color: #F3F4F6 !important;
+            }
+            [data-testid="stFileUploaderDropzone"] *,
+            [data-testid="stFileUploaderDropzoneInstructions"] * {
+                color: #D1D5DB !important;
             }
             [data-testid="stFileUploader"] button,
             [data-testid="stDownloadButton"] > button {
@@ -751,11 +864,6 @@ else:
                 color: #FFFFFF !important;
                 border: 1px solid #4A86C5 !important;
                 border-radius: 6px !important;
-            }
-            span[data-baseweb="tag"] {
-                background-color: #3D73AD !important;
-                color: #FFFFFF !important;
-                border-radius: 5px !important;
             }
             .stButton > button,
             [data-testid="stSidebar"] .stButton > button {
