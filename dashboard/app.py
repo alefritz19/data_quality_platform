@@ -244,17 +244,21 @@ def build_column_transparency_table(
 cfg = load_config()
 init_database(cfg)
 
-# ── FIXIERTE EINZEILIGE KOPFLEISTE (STICKY TOP-BAR, BEWEGT SICH NICHT) ───────
+# ── VEREINTE, FESTSTEHENDE KOPFLEISTE (PROGRAMMTITEL + STEUERUNG IN EINEM BLOCK) ─
 T = TEXTS[st.session_state["ui_lang"]]
-top_bar = st.container()
-with top_bar:
-    tb1, tb2, tb3 = st.columns([3.0, 0.9, 1.3], vertical_alignment="center")
+header_container = st.container()
+with header_container:
+    st.markdown('<div id="fixed-top-header-marker"></div>', unsafe_allow_html=True)
+    tb1, tb2, tb3 = st.columns([3.4, 0.85, 1.15], vertical_alignment="center")
     with tb1:
         st.markdown(
-            f"<div class='top-bar-info'><b>{T['sidebar_title']}</b> &nbsp;|&nbsp; "
+            f"<div class='unified-header-title'>{T['app_title']}</div>"
+            f"<div class='unified-header-sub'>"
             f"Umgebung: <code>{cfg.app_env.upper()}</code> &nbsp;·&nbsp; "
-            f"Engine: <code>DuckDB + Parquet</code> &nbsp;·&nbsp; "
-            f"Quellen: <code>SMARD.de & DWD 01420</code></div>",
+            f"Engine: <code>DuckDB + Parquet (ZSTD)</code> &nbsp;·&nbsp; "
+            f"Quellen: <code>SMARD.de & DWD 01420</code> &nbsp;·&nbsp; "
+            f"{T['app_subtitle']}"
+            f"</div>",
             unsafe_allow_html=True,
         )
     with tb2:
@@ -295,42 +299,47 @@ if not is_dark:
     st.markdown(
         """
         <style>
-            /* Standard-Streamlit-Kopfzeile ausblenden, damit die einzeilige Leiste ganz oben sitzt */
+            /* Standard-Streamlit-Kopfzeile ausblenden */
             [data-testid="stHeader"] {
                 display: none !important;
             }
             .block-container {
-                padding-top: 0.6rem !important;
+                padding-top: 0rem !important;
             }
             /* Haupthintergrund: klares Weiß */
             .stApp, [data-testid="stAppViewContainer"] {
                 background-color: #FFFFFF !important;
                 color: #2B3E54 !important;
             }
-            /* Fixierte (sticky) einzeilige obere Leiste in derselben Farbe wie das Seitenmenü */
-            div[data-testid="stHorizontalBlock"]:first-of-type {
+            /* Vereinter Kopfbereich (Titel + Leiste): bewegt sich beim Scrollen NICHT */
+            .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker) {
                 position: sticky !important;
                 top: 0 !important;
-                z-index: 999 !important;
+                z-index: 9999 !important;
                 background-color: #E8F2FC !important;
                 border-bottom: 1px solid #CBE0F5 !important;
-                border-radius: 0px !important;
-                padding: 6px 18px !important;
+                padding: 10px 20px 10px 20px !important;
                 margin-left: -1rem !important;
                 margin-right: -1rem !important;
                 margin-bottom: 14px !important;
-                align-items: center !important;
-                min-height: 44px !important;
+                box-shadow: 0 2px 6px rgba(44, 72, 102, 0.06) !important;
             }
-            .top-bar-info {
+            .unified-header-title {
+                color: #2C4866 !important;
+                font-size: 1.55rem !important;
+                font-weight: 500 !important;
+                line-height: 1.25 !important;
+                margin-bottom: 3px !important;
+            }
+            .unified-header-sub {
+                color: #416182 !important;
+                font-size: 0.84rem !important;
                 white-space: nowrap !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
-                color: #2C4866 !important;
-                font-size: 0.92rem !important;
-                line-height: 1.4 !important;
             }
-            div[data-testid="stHorizontalBlock"]:first-of-type [data-testid="stRadio"] > div {
+            .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
                 justify-content: flex-end !important;
                 flex-wrap: nowrap !important;
             }
@@ -448,7 +457,7 @@ else:
                 display: none !important;
             }
             .block-container {
-                padding-top: 0.6rem !important;
+                padding-top: 0rem !important;
             }
             .stApp, [data-testid="stAppViewContainer"] {
                 background-color: #121D2B !important;
@@ -476,30 +485,35 @@ else:
                 color: #E2F0FF !important;
                 border: 1px solid #365275 !important;
             }
-            /* Fixierte (sticky) einzeilige obere Leiste */
-            div[data-testid="stHorizontalBlock"]:first-of-type {
+            /* Vereinter Kopfbereich (Titel + Leiste): bewegt sich beim Scrollen NICHT */
+            .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker) {
                 position: sticky !important;
                 top: 0 !important;
-                z-index: 999 !important;
+                z-index: 9999 !important;
                 background-color: #19283B !important;
                 border-bottom: 1px solid #2A405C !important;
-                border-radius: 0px !important;
-                padding: 6px 18px !important;
+                padding: 10px 20px 10px 20px !important;
                 margin-left: -1rem !important;
                 margin-right: -1rem !important;
                 margin-bottom: 14px !important;
-                align-items: center !important;
-                min-height: 44px !important;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
             }
-            .top-bar-info, .top-bar-info b {
+            .unified-header-title {
+                color: #FFFFFF !important;
+                font-size: 1.55rem !important;
+                font-weight: 500 !important;
+                line-height: 1.25 !important;
+                margin-bottom: 3px !important;
+            }
+            .unified-header-sub {
+                color: #DCE7F3 !important;
+                font-size: 0.84rem !important;
                 white-space: nowrap !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
-                color: #FFFFFF !important;
-                font-size: 0.92rem !important;
-                line-height: 1.4 !important;
             }
-            div[data-testid="stHorizontalBlock"]:first-of-type [data-testid="stRadio"] > div {
+            .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
                 justify-content: flex-end !important;
                 flex-wrap: nowrap !important;
             }
@@ -701,9 +715,6 @@ avg_duration_ms = (
 unparseable_total = len(df_unparseable_files) + len(df_unparseable_rows)
 
 # ── GLOBALE SYSTEM-KPI-KARTEN ────────────────────────────────────────────────
-st.title(T["app_title"])
-st.caption(T["app_subtitle"])
-
 k1, k2, k3, k4, k5 = st.columns(5)
 k1.metric(T["kpi_sources"], f"{len(df_sources)}")
 k2.metric(
