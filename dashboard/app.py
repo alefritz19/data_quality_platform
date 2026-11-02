@@ -466,6 +466,62 @@ elif selected_section.startswith("2."):
             hide_index=True,
         )
 
+        # Wählbares Diagramm für Qualitätsbefunde (Balken-, Linien-, Kreisdiagramm)
+        q_chart_choice = st.selectbox(
+            "Qualitätsdiagramm wählen:",
+            [
+                "Balkendiagramm: Befunde (Anzahl) je Regel",
+                "Liniendiagramm: Anteil betroffener Zeilen (%) je Spalte",
+                "Kreisdiagramm: Verteilung der Befunde nach Spalte",
+                "Kein Diagramm anzeigen",
+            ],
+        )
+        if not filtered.empty and q_chart_choice.startswith("Balkendiagramm"):
+            agg_rule = (
+                filtered.groupby("rule_name", as_index=False)["affected_count"]
+                .sum()
+                .sort_values("affected_count", ascending=True)
+            )
+            fig_q = px.bar(
+                agg_rule,
+                x="affected_count",
+                y="rule_name",
+                orientation="h",
+                title="Anzahl betroffener Einträge je Qualitätsregel",
+                labels={"affected_count": "Anzahl Befunde", "rule_name": "Regel"},
+            )
+            fig_q.update_layout(height=340)
+            st.plotly_chart(fig_q, use_container_width=True)
+        elif not filtered.empty and q_chart_choice.startswith("Liniendiagramm"):
+            agg_line = (
+                filtered.groupby("column_name", as_index=False)["share_pct"]
+                .max()
+                .sort_values("column_name")
+            )
+            fig_q = px.line(
+                agg_line,
+                x="column_name",
+                y="share_pct",
+                markers=True,
+                title="Maximaler Anteil betroffener Zeilen (%) je Spalte",
+                labels={"column_name": "Spalte", "share_pct": "Anteil (%)"},
+            )
+            fig_q.update_layout(height=340)
+            st.plotly_chart(fig_q, use_container_width=True)
+        elif not filtered.empty and q_chart_choice.startswith("Kreisdiagramm"):
+            agg_col = (
+                filtered.groupby("column_name", as_index=False)["affected_count"]
+                .sum()
+            )
+            fig_q = px.pie(
+                agg_col,
+                names="column_name",
+                values="affected_count",
+                title="Anteil der Qualitätsbefunde nach Spalte",
+            )
+            fig_q.update_layout(height=340)
+            st.plotly_chart(fig_q, use_container_width=True)
+
         st.markdown("---")
         st.markdown("#### 3. Lernende Anomalieprüfung (Stufe 2: Isolation Forest mit Begründungspflicht)")
         if df_ml_flags_all.empty:
@@ -773,139 +829,195 @@ elif selected_section.startswith("4."):
                 hide_index=True,
             )
 
-        # MODUS 4: KOMBINIERTE ANSICHT (AGGREGIERTE TABELLE + PASSENDES DIAGRAMM)
+        # MODUS 4: KOMBINIERTE ANSICHT (AGGREGIERTE TABELLE + PASSENDES DIAGRAMM NEBENEINANDER)
         elif view_mode.startswith("4."):
             st.markdown(
-                "#### B. Kombinierte Ansicht: Aggregierte Datentabelle + Diagramm (keine Grafik ohne zugrundeliegende Zahlentabelle)"
+                "#### B. Kombinierte Ansicht: Aggregierte Datentabelle + Diagramm nebeneinander"
             )
             time_cols = [
                 c for c in all_cols if "date" in c.lower() or "time" in c.lower()
             ]
-            c_chart, c_metric, c_agg = st.columns(3)
-            with c_chart:
-                chart_type = st.selectbox(
-                    "Darstellungsform (Diagramm + Tabelle):",
-                    [
-                        "1. Zeitreihen-Liniendiagramm (Stunden- oder Tagesverlauf) + Tabelle",
-                        "2. Balkendiagramm (Aggregierter Tagesvergleich) + Tabelle",
-                        "3. Kreisdiagramm (Anteile nach Wertebereich / Kategorie) + Tabelle",
-                        "4. Boxplot (Statistische Verteilung, Median & Ausreißer) + Tabelle",
-                    ],
-                )
-            with c_metric:
-                y_metric = st.selectbox(
-                    "Kennzahl auswählen (technische IDs ausgeblendet):",
-                    options=metric_cols if metric_cols else all_cols,
-                )
-            with c_agg:
-                time_resolution = st.selectbox(
-                    "Zeitliche Auflösung / Aggregation:",
-                    ["Tageswerte (Durchschnitt / Min / Max je Tag)", "Stundenwerte (Originalauflösung)"],
-                )
-
             x_time_col = time_cols[0] if time_cols else all_cols[0]
-            plot_df = df_mart_full.copy()
-            plot_df["_val_"] = pd.to_numeric(plot_df[y_metric], errors="coerce")
-
-            if time_resolution.startswith("Tageswerte") and time_cols:
-                plot_df["Datum"] = pd.to_datetime(
-                    plot_df[x_time_col], errors="coerce"
-                ).dt.strftime("%Y-%m-%d")
-                agg_df = (
-                    plot_df.groupby("Datum", as_index=False)
-                    .agg(
-                        Gueltige_Stunden=("_val_", "count"),
-                        Fehlende_Stunden=("_val_", lambda s: int(s.isna().sum())),
-                        Minimum=("_val_", "min"),
-                        Durchschnitt=("_val_", "mean"),
-                        Median=("_val_", "median"),
-                        Maximum=("_val_", "max"),
-                        Summe=("_val_", "sum"),
-                    )
-                    .round(3)
+            comb_metric = st.selectbox(
+                "Kennzahl für die kombinierte Tabellen- & Diagrammansicht:",
+                options=metric_cols if metric_cols else all_cols,
+                key="comb_metric_select",
+            )
+            plot_df_c = df_mart_full.copy()
+            plot_df_c["_val_"] = pd.to_numeric(plot_df_c[comb_metric], errors="coerce")
+            plot_df_c["Datum"] = pd.to_datetime(
+                plot_df_c[x_time_col], errors="coerce"
+            ).dt.strftime("%Y-%m-%d")
+            agg_df_c = (
+                plot_df_c.groupby("Datum", as_index=False)
+                .agg(
+                    Gueltige_Stunden=("_val_", "count"),
+                    Fehlende_Stunden=("_val_", lambda s: int(s.isna().sum())),
+                    Minimum=("_val_", "min"),
+                    Durchschnitt=("_val_", "mean"),
+                    Median=("_val_", "median"),
+                    Maximum=("_val_", "max"),
+                    Summe=("_val_", "sum"),
                 )
-                x_axis_col = "Datum"
-                y_axis_col = "Durchschnitt"
-                table_to_show = agg_df
-            else:
-                plot_df[x_time_col] = plot_df[x_time_col].astype(str)
-                agg_df = plot_df[[x_time_col, y_metric]].rename(
-                    columns={y_metric: "Wert"}
-                )
-                x_axis_col = x_time_col
-                y_axis_col = "Wert"
-                table_to_show = agg_df
-
+                .round(3)
+            )
             col_left, col_right = st.columns([1.15, 1.0])
             with col_left:
-                st.markdown(f"**Zugrundeliegende Zahlentabelle für `{y_metric}`**")
-                st.dataframe(table_to_show, use_container_width=True, hide_index=True, height=380)
-
+                st.markdown(f"**Tages-Aggregationstabelle für `{comb_metric}`**")
+                st.dataframe(agg_df_c, use_container_width=True, hide_index=True, height=380)
             with col_right:
-                st.markdown(f"**Visuelle Darstellung für `{y_metric}`**")
-                if chart_type.startswith("1."):
-                    fig = px.line(
-                        table_to_show.dropna(subset=[y_axis_col]),
-                        x=x_axis_col,
-                        y=y_axis_col,
+                st.markdown(f"**Tagesverlauf (Min / Durchschnitt / Max) für `{comb_metric}`**")
+                fig_comb = px.line(
+                    agg_df_c.dropna(subset=["Durchschnitt"]),
+                    x="Datum",
+                    y=["Minimum", "Durchschnitt", "Maximum"],
+                    markers=True,
+                    title=f"Tages-Korridor (Min / Ø / Max): {comb_metric}",
+                )
+                fig_comb.update_layout(height=380)
+                st.plotly_chart(fig_comb, use_container_width=True)
+
+        # ── TEIL C: IMMER SICHTBARES, WÄHLBARES DIAGRAMM (LINIE, BALKEN, KREIS) ─
+        st.markdown("---")
+        st.markdown("#### Wählbares Diagramm (Liniendiagramm · Balkendiagramm · Kreisdiagramm)")
+        if not df_mart_full.empty:
+            time_cols = [
+                c for c in all_cols if "date" in c.lower() or "time" in c.lower()
+            ]
+            default_x_idx = all_cols.index(time_cols[0]) if time_cols else 0
+
+            c_type, c_x, c_y, c_res = st.columns(4)
+            with c_type:
+                plot_type = st.selectbox(
+                    "Diagrammtyp:",
+                    [
+                        "Liniendiagramm",
+                        "Balkendiagramm",
+                        "Kreisdiagramm",
+                        "Kein Diagramm",
+                    ],
+                )
+            with c_x:
+                x_col = st.selectbox(
+                    "Kategorie / Zeitachse (X):",
+                    all_cols,
+                    index=default_x_idx,
+                )
+            with c_y:
+                y_col = st.selectbox(
+                    "Kennzahl (Y):",
+                    metric_cols if metric_cols else all_cols,
+                )
+            with c_res:
+                agg_choice = st.selectbox(
+                    "Auflösung / Gruppierung:",
+                    [
+                        "Tageswerte (Ø pro Tag – übersichtlich)",
+                        "Originalwerte (Stündlich / Einzelzeilen)",
+                    ],
+                )
+
+            if plot_type != "Kein Diagramm" and x_col and y_col:
+                chart_df = df_mart_full.copy()
+                chart_df["_y_num_"] = pd.to_numeric(chart_df[y_col], errors="coerce")
+                is_time_x = "date" in x_col.lower() or "time" in x_col.lower()
+
+                if agg_choice.startswith("Tageswerte") and is_time_x:
+                    chart_df["Tag"] = pd.to_datetime(
+                        chart_df[x_col], errors="coerce"
+                    ).dt.strftime("%Y-%m-%d")
+                    plot_data = (
+                        chart_df.groupby("Tag", as_index=False)
+                        .agg(
+                            Durchschnitt=("_y_num_", "mean"),
+                            Minimum=("_y_num_", "min"),
+                            Maximum=("_y_num_", "max"),
+                            Gueltige_Werte=("_y_num_", "count"),
+                        )
+                        .round(3)
+                    )
+                    x_plot = "Tag"
+                    y_plot = "Durchschnitt"
+                    title_suffix = "Tagesdurchschnitt"
+                else:
+                    plot_data = chart_df.dropna(subset=["_y_num_"]).head(300).copy()
+                    plot_data[x_col] = plot_data[x_col].astype(str)
+                    x_plot = x_col
+                    y_plot = "_y_num_"
+                    title_suffix = "Einzelwerte"
+
+                if plot_type == "Liniendiagramm":
+                    fig_m = px.line(
+                        plot_data.dropna(subset=[y_plot]),
+                        x=x_plot,
+                        y=y_plot,
                         markers=True,
-                        title=f"Zeitverlauf: {y_metric} ({y_axis_col})",
+                        title=f"Liniendiagramm: {y_col} nach {x_plot} ({title_suffix} · mart.{chosen_table})",
+                        labels={x_plot: x_plot, y_plot: y_col},
                     )
-                    fig.update_layout(height=380)
-                    st.plotly_chart(fig, use_container_width=True)
-                elif chart_type.startswith("2."):
-                    fig = px.bar(
-                        table_to_show.dropna(subset=[y_axis_col]),
-                        x=x_axis_col,
-                        y=y_axis_col,
-                        title=f"Balkenvergleich: {y_metric} ({y_axis_col})",
+                    fig_m.update_layout(height=400)
+                    st.plotly_chart(fig_m, use_container_width=True)
+
+                elif plot_type == "Balkendiagramm":
+                    fig_m = px.bar(
+                        plot_data.dropna(subset=[y_plot]),
+                        x=x_plot,
+                        y=y_plot,
+                        text_auto=".2f" if len(plot_data) <= 35 else False,
+                        title=f"Balkendiagramm: {y_col} nach {x_plot} ({title_suffix} · mart.{chosen_table})",
+                        labels={x_plot: x_plot, y_plot: y_col},
                     )
-                    fig.update_layout(height=380)
-                    st.plotly_chart(fig, use_container_width=True)
-                elif chart_type.startswith("3."):
-                    # Sinnvolle Gruppierung in 4 transparente Wertebereiche statt 50 Einzelzeitstempel!
-                    valid_vals = plot_df["_val_"].dropna()
-                    if len(valid_vals) > 0:
-                        q25, q50, q75 = np.percentile(valid_vals, [25, 50, 75])
+                    fig_m.update_layout(height=400)
+                    st.plotly_chart(fig_m, use_container_width=True)
 
-                        def bucket_label(v: float) -> str:
-                            if pd.isna(v):
-                                return "Fehlender Wert (NULL)"
-                            if v <= q25:
-                                return f"1. Niedrig (<= {q25:.1f})"
-                            if v <= q50:
-                                return f"2. Unteres Mittel ({q25:.1f} – {q50:.1f})"
-                            if v <= q75:
-                                return f"3. Oberes Mittel ({q50:.1f} – {q75:.1f})"
-                            return f"4. Spitzenbereich (> {q75:.1f})"
+                elif plot_type == "Kreisdiagramm":
+                    # Wenn X-Achse zu viele Einzelwerte hat (z. B. Zeitstempel), automatisch in 4 transparente Wertebereiche + Lücken gruppieren
+                    unique_x = chart_df[x_col].nunique(dropna=True)
+                    if is_time_x or unique_x > 12:
+                        valid_vals = chart_df["_y_num_"].dropna()
+                        if len(valid_vals) > 0:
+                            q25, q50, q75 = np.percentile(valid_vals, [25, 50, 75])
 
-                        bucket_series = plot_df["_val_"].apply(bucket_label)
-                        pie_df = (
-                            bucket_series.value_counts()
-                            .reset_index()
-                            .rename(columns={"index": "Wertebereich", "_val_": "Anzahl_Zeilen", "count": "Anzahl_Zeilen"})
-                        )
-                        pie_df.columns = ["Wertebereich", "Anzahl_Zeilen"]
-                        fig = px.pie(
-                            pie_df,
-                            names="Wertebereich",
-                            values="Anzahl_Zeilen",
-                            title=f"Verteilung der Zeilen nach Wertebereich & Lücken ({y_metric})",
-                        )
-                        fig.update_layout(height=380)
-                        st.plotly_chart(fig, use_container_width=True)
+                            def _make_bucket(val: float) -> str:
+                                if pd.isna(val):
+                                    return "5. Fehlender Wert (NULL)"
+                                if val <= q25:
+                                    return f"1. Niedrig (<= {q25:.2f})"
+                                if val <= q50:
+                                    return f"2. Unteres Mittel ({q25:.2f} – {q50:.2f})"
+                                if val <= q75:
+                                    return f"3. Oberes Mittel ({q50:.2f} – {q75:.2f})"
+                                return f"4. Spitzenbereich (> {q75:.2f})"
+
+                            buckets = chart_df["_y_num_"].apply(_make_bucket)
+                            pie_data = buckets.value_counts().reset_index()
+                            pie_data.columns = ["Wertebereich", "Anzahl_Stunden"]
+                            fig_m = px.pie(
+                                pie_data,
+                                names="Wertebereich",
+                                values="Anzahl_Stunden",
+                                hole=0.3,
+                                title=f"Kreisdiagramm: Verteilung von '{y_col}' nach Wertebereichen & Lücken (mart.{chosen_table})",
+                            )
+                            fig_m.update_layout(height=420)
+                            st.plotly_chart(fig_m, use_container_width=True)
+                        else:
+                            st.info("Keine gültigen Zahlenwerte für Kreisdiagramm vorhanden.")
                     else:
-                        st.info("Keine gültigen Zahlenwerte für Kreisdiagramm vorhanden.")
-                elif chart_type.startswith("4."):
-                    fig = px.box(
-                        plot_df.dropna(subset=["_val_"]),
-                        y="_val_",
-                        points="outliers",
-                        title=f"Verteilung, Median, Quartile & Ausreißer: {y_metric}",
-                        labels={"_val_": y_metric},
-                    )
-                    fig.update_layout(height=380)
-                    st.plotly_chart(fig, use_container_width=True)
+                        pie_agg = (
+                            chart_df.groupby(x_col, as_index=False)["_y_num_"]
+                            .sum()
+                            .rename(columns={"_y_num_": y_col})
+                        )
+                        fig_m = px.pie(
+                            pie_agg,
+                            names=x_col,
+                            values=y_col,
+                            hole=0.3,
+                            title=f"Kreisdiagramm: Anteile von '{y_col}' nach '{x_col}' (mart.{chosen_table})",
+                        )
+                        fig_m.update_layout(height=420)
+                        st.plotly_chart(fig_m, use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
