@@ -19,6 +19,7 @@ from src.file_converter import process_inbox
 from src.final_gate import run_final_gate_all
 from src.ingest_source import fetch_smard_raw_data
 from src.quality_checks import run_all_staging_quality_checks
+from src.report_generator import build_quality_report
 from src.staging_loader import stage_all_parquet_files
 
 
@@ -142,5 +143,27 @@ def verified_mart_tables(
             "promoted_to_mart": passed_cnt,
             "blocked_tables": blocked_cnt,
             "gate_summary": MetadataValue.json(gate_results),
+        },
+    )
+
+
+@asset(deps=[verified_mart_tables], group_name="data_quality_pipeline")
+def quality_report(
+    context: AssetExecutionContext,
+) -> Output[Dict[str, object]]:
+    """Erzeugt den regelbasierten Qualitätsbericht mit konkreten Empfehlungen."""
+    cfg = load_config()
+    report = build_quality_report(cfg)
+    context.log.info(
+        f"Bericht erstellt: {report['report_md_path']} "
+        f"({report['recommendations_count']} Empfehlungen)."
+    )
+    return Output(
+        value=report,
+        metadata={
+            "findings_count": int(report["findings_count"]),
+            "prioritized_count": int(report["prioritized_count"]),
+            "recommendations_count": int(report["recommendations_count"]),
+            "report_md_path": str(report["report_md_path"]),
         },
     )

@@ -24,6 +24,7 @@ from src.file_converter import process_inbox
 from src.final_gate import run_final_gate_all
 from src.ingest_source import fetch_smard_raw_data
 from src.quality_checks import run_all_staging_quality_checks
+from src.report_generator import build_quality_report
 from src.staging_loader import stage_all_parquet_files
 
 st.set_page_config(
@@ -79,6 +80,7 @@ with st.sidebar:
             "2. Qualitätsprüfungen (quality_log)",
             "3. Nicht verarbeitbar",
             "4. Freigegebene Mart-Daten & Diagramme",
+            "5. Regelbasierter Qualitätsbericht",
         ],
     )
 
@@ -118,6 +120,7 @@ with st.sidebar:
                 stage_all_parquet_files(cfg)
                 run_all_staging_quality_checks(stage="staging", config=cfg)
                 run_final_gate_all(cfg)
+                build_quality_report(cfg)
                 st.success("Pipeline-Durchlauf und Freigabeprüfung abgeschlossen.")
 
     if st.button("Nur Eingangsordner (inbox) verarbeiten", use_container_width=True):
@@ -129,6 +132,7 @@ with st.sidebar:
                 stage_all_parquet_files(cfg)
                 run_all_staging_quality_checks(stage="staging", config=cfg)
                 run_final_gate_all(cfg)
+                build_quality_report(cfg)
                 st.success("Eingangsordner erfolgreich verarbeitet.")
 
 
@@ -423,3 +427,12 @@ elif selected_section.startswith("4."):
                 )
                 fig_m.update_layout(height=360)
                 st.plotly_chart(fig_m, use_container_width=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ANSICHT 5: REGELBASIERTER QUALITÄTSBERICHT (OHNE KI)
+# ══════════════════════════════════════════════════════════════════════════════
+elif selected_section.startswith("5."):
+    st.subheader("Regelbasierter Qualitätsbericht mit nachvollziehbaren Empfehlungen")
+    rep = build_quality_report(cfg)
+    st.markdown(str(rep["markdown"]))

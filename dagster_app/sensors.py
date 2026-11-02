@@ -16,6 +16,7 @@ inbox_processing_job = define_asset_job(
         "staging_tables",
         "quality_check_results",
         "verified_mart_tables",
+        "quality_report",
     ),
     description="Verarbeitet neue Dateien im Eingangsordner bis zur Freigabe in 'mart'.",
 )

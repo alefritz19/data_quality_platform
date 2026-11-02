@@ -8,6 +8,7 @@ from dagster import Definitions
 from dagster_app.assets import (
     parquet_conversions,
     quality_check_results,
+    quality_report,
     raw_public_sources,
     staging_tables,
     verified_mart_tables,
@@ -23,6 +24,7 @@ defs = Definitions(
         staging_tables,
         quality_check_results,
         verified_mart_tables,
+        quality_report,
     ],
     asset_checks=[
         check_no_pii_in_staging,
