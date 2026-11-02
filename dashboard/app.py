@@ -50,16 +50,16 @@ TEXTS: Dict[str, Dict[str, str]] = {
         ),
         "sidebar_title": "Plattform für Datenqualität",
         "nav_label": "Ansicht wählen",
-        "nav_1": "1. Übersicht & Quellen",
-        "nav_2": "2. Qualitätsprüfungen (quality_log)",
-        "nav_3": "3. Nicht verarbeitbar",
-        "nav_4": "4. Freigegebene Daten: KPI-Karten, Tabellen & Diagramme",
-        "nav_5": "5. Regelbasierter Qualitätsbericht",
-        "nav_6": "6. Bereitstellung & Download fertiger Daten",
-        "intake_title": "Dateiannahme & Pipeline-Steuerung",
-        "upload_label": "Datei in Eingangsordner legen",
-        "btn_run_all": "Reale Quellen (SMARD + DWD) + Pipeline ausführen",
-        "btn_run_inbox": "Nur Eingangsordner (inbox) verarbeiten",
+        "nav_1": "Übersicht & Datenquellen",
+        "nav_2": "Qualitätsprüfungen (quality_log)",
+        "nav_3": "Nicht verarbeitbare Daten",
+        "nav_4": "Freigegebene Daten & KPI-Karten",
+        "nav_5": "Regelbasierter Qualitätsbericht",
+        "nav_6": "Bereitstellung & Daten-Download",
+        "intake_title": "Dateiannahme & Pipeline",
+        "upload_label": "Datei ablegen",
+        "btn_run_all": "SMARD + DWD laden & prüfen",
+        "btn_run_inbox": "Eingangsordner (inbox) prüfen",
         "kpi_sources": "Erfasste Quellen",
         "kpi_parquet": "Parquet-Konvertierungen",
         "kpi_mart": "Freigegebene Mart-Tabellen",
@@ -86,15 +86,15 @@ TEXTS: Dict[str, Dict[str, str]] = {
         ),
         "sidebar_title": "Data Quality Platform",
         "nav_label": "Select View",
-        "nav_1": "1. Overview & Data Sources",
-        "nav_2": "2. Quality Checks (quality_log)",
-        "nav_3": "3. Unparseable Files & Values",
-        "nav_4": "4. Verified Mart Data: KPI Cards, Tables & Charts",
-        "nav_5": "5. Rule-Based Quality Report",
-        "nav_6": "6. Export & Download Ready Data",
-        "intake_title": "File Intake & Pipeline Control",
-        "upload_label": "Place file into inbox folder",
-        "btn_run_all": "Fetch Real Sources (SMARD + DWD) & Run Pipeline",
+        "nav_1": "Overview & Data Sources",
+        "nav_2": "Quality Checks (quality_log)",
+        "nav_3": "Unprocessable Files & Values",
+        "nav_4": "Verified Mart Data & KPI Cards",
+        "nav_5": "Rule-Based Quality Report",
+        "nav_6": "Export & Download Ready Data",
+        "intake_title": "File Intake & Pipeline",
+        "upload_label": "Drop file here",
+        "btn_run_all": "Fetch SMARD + DWD & Run Pipeline",
         "btn_run_inbox": "Process Inbox Folder Only",
         "kpi_sources": "Registered Sources",
         "kpi_parquet": "Parquet Conversions",
@@ -419,18 +419,14 @@ if not is_dark:
                 flex-wrap: nowrap !important;
                 align-items: center !important;
             }
-            /* Linkes Menü: dauerhaft sichtbar als echte Flex-Spalte (überlappt den Hauptbereich niemals) */
-            [data-testid="stSidebar"] [data-testid="stRadio"] > div {
-                justify-content: flex-start !important;
-                align-items: flex-start !important;
-            }
+            /* Linkes Menü: breiter (325px), tiefer zentriert positioniert, ohne Zeilenumbrüche */
             [data-testid="stSidebar"] {
                 position: relative !important;
                 left: 0 !important;
                 flex-shrink: 0 !important;
-                min-width: 280px !important;
-                max-width: 280px !important;
-                width: 280px !important;
+                min-width: 325px !important;
+                max-width: 325px !important;
+                width: 325px !important;
                 transform: none !important;
                 margin-left: 0 !important;
                 visibility: visible !important;
@@ -441,14 +437,76 @@ if not is_dark:
             }
             [data-testid="stSidebar"] > div:first-child {
                 background-color: #E8F2FC !important;
-                width: 280px !important;
+                width: 325px !important;
             }
             [data-testid="stSidebarCollapseButton"],
             [data-testid="collapsedControl"] {
                 display: none !important;
             }
             [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
-                padding-top: 1.1rem !important;
+                padding-top: 5.4rem !important;
+                padding-left: 1.15rem !important;
+                padding-right: 1.15rem !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stRadioGroup"] {
+                width: 100% !important;
+                gap: 7px !important;
+                align-items: stretch !important;
+            }
+            [data-testid="stSidebar"] .e1dm8mpf1 {
+                width: 100% !important;
+            }
+            /* Navigationskarten im linken Menü (inaktiv: dezentes Blaugrau | aktiv: grüner Rahmen + hellgrüner Hintergrund) */
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"] {
+                width: 100% !important;
+                box-sizing: border-box !important;
+                padding: 9px 11px !important;
+                border-radius: 7px !important;
+                background-color: #DCEAF8 !important;
+                border: 1px solid #C2DAF2 !important;
+                transition: all 140ms ease !important;
+            }
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"]:hover {
+                background-color: #D2E4F6 !important;
+                border-color: #A9C9EA !important;
+            }
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected="true"],
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) {
+                background-color: #E3F9EB !important;
+                border: 1.5px solid #22C55E !important;
+                box-shadow: 0 1px 4px rgba(34, 197, 94, 0.14) !important;
+            }
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected="true"] p,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) p {
+                color: #14532D !important;
+                font-weight: 500 !important;
+            }
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"] p {
+                white-space: nowrap !important;
+                font-size: 0.91rem !important;
+            }
+            /* Statt runder Punkte: dezenter V-Pfeil nach unten (grün wenn aktiv) */
+            [data-testid="stSidebar"] .e1dm8mpf5,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"] > div > div:first-child > div {
+                display: none !important;
+            }
+            [data-testid="stSidebar"] .e1dm8mpf4,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"] > div > div:first-child {
+                border: none !important;
+                border-radius: 0 !important;
+                background-color: transparent !important;
+                width: 18px !important;
+                height: 18px !important;
+                background-repeat: no-repeat !important;
+                background-position: center !important;
+                background-size: 16px 16px !important;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%235A7A9A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+            }
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected="true"] .e1dm8mpf4,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) .e1dm8mpf4,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected="true"] > div > div:first-child,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) > div > div:first-child {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%2316A34A' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
             }
             [data-testid="stSidebar"] h1,
             [data-testid="stSidebar"] h2,
@@ -667,17 +725,14 @@ else:
                 flex-wrap: nowrap !important;
                 align-items: center !important;
             }
-            [data-testid="stSidebar"] [data-testid="stRadio"] > div {
-                justify-content: flex-start !important;
-                align-items: flex-start !important;
-            }
+            /* Linkes Menü im Matte-Dark-Modus: breiter (325px), tiefer zentriert positioniert, ohne Zeilenumbrüche */
             [data-testid="stSidebar"] {
                 position: relative !important;
                 left: 0 !important;
                 flex-shrink: 0 !important;
-                min-width: 280px !important;
-                max-width: 280px !important;
-                width: 280px !important;
+                min-width: 325px !important;
+                max-width: 325px !important;
+                width: 325px !important;
                 transform: none !important;
                 margin-left: 0 !important;
                 visibility: visible !important;
@@ -688,14 +743,76 @@ else:
             }
             [data-testid="stSidebar"] > div:first-child {
                 background-color: #21252B !important;
-                width: 280px !important;
+                width: 325px !important;
             }
             [data-testid="stSidebarCollapseButton"],
             [data-testid="collapsedControl"] {
                 display: none !important;
             }
             [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
-                padding-top: 1.1rem !important;
+                padding-top: 5.4rem !important;
+                padding-left: 1.15rem !important;
+                padding-right: 1.15rem !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stRadioGroup"] {
+                width: 100% !important;
+                gap: 7px !important;
+                align-items: stretch !important;
+            }
+            [data-testid="stSidebar"] .e1dm8mpf1 {
+                width: 100% !important;
+            }
+            /* Navigationskarten im linken Menü (inaktiv: mattes Schiefergrau | aktiv: grüner Rahmen + dunkelgrüner Hintergrund) */
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"] {
+                width: 100% !important;
+                box-sizing: border-box !important;
+                padding: 9px 11px !important;
+                border-radius: 7px !important;
+                background-color: #282D37 !important;
+                border: 1px solid #383F4D !important;
+                transition: all 140ms ease !important;
+            }
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"]:hover {
+                background-color: #2F3542 !important;
+                border-color: #485264 !important;
+            }
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected="true"],
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) {
+                background-color: #1B3829 !important;
+                border: 1.5px solid #22C55E !important;
+                box-shadow: 0 1px 5px rgba(34, 197, 94, 0.22) !important;
+            }
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected="true"] p,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) p {
+                color: #ECFDF5 !important;
+                font-weight: 500 !important;
+            }
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"] p {
+                white-space: nowrap !important;
+                font-size: 0.91rem !important;
+            }
+            /* Statt runder Punkte: dezenter V-Pfeil nach unten (grün wenn aktiv) */
+            [data-testid="stSidebar"] .e1dm8mpf5,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"] > div > div:first-child > div {
+                display: none !important;
+            }
+            [data-testid="stSidebar"] .e1dm8mpf4,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"] > div > div:first-child {
+                border: none !important;
+                border-radius: 0 !important;
+                background-color: transparent !important;
+                width: 18px !important;
+                height: 18px !important;
+                background-repeat: no-repeat !important;
+                background-position: center !important;
+                background-size: 16px 16px !important;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%239CA3AF' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+            }
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected="true"] .e1dm8mpf4,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) .e1dm8mpf4,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected="true"] > div > div:first-child,
+            [data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) > div > div:first-child {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%2322C55E' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
             }
             [data-testid="stSidebar"] h1,
             [data-testid="stSidebar"] h2,
@@ -893,14 +1010,8 @@ else:
 with st.sidebar:
     selected_section = st.radio(
         T["nav_label"],
-        [
-            T["nav_1"],
-            T["nav_2"],
-            T["nav_3"],
-            T["nav_4"],
-            T["nav_5"],
-            T["nav_6"],
-        ],
+        options=["nav_1", "nav_2", "nav_3", "nav_4", "nav_5", "nav_6"],
+        format_func=lambda k: T[k],
     )
 
     st.markdown("---")
@@ -1044,7 +1155,7 @@ st.markdown("---")
 # ══════════════════════════════════════════════════════════════════════════════
 # ANSICHT 1: ÜBERSICHT, QUELLEN & PARQUET-KONVERTIERUNG
 # ══════════════════════════════════════════════════════════════════════════════
-if selected_section.startswith("1."):
+if selected_section == "nav_1":
     st.subheader(T["sec1_1"])
     if df_sources.empty:
         st.info("Noch keine Datenquellen protokolliert.")
@@ -1084,7 +1195,7 @@ if selected_section.startswith("1."):
 # ══════════════════════════════════════════════════════════════════════════════
 # ANSICHT 2: QUALITÄTSPRÜFUNGEN (QUALITY_LOG & ISOLATION FOREST)
 # ══════════════════════════════════════════════════════════════════════════════
-elif selected_section.startswith("2."):
+elif selected_section == "nav_2":
     st.subheader(T["sec2_title"])
 
     if df_quality.empty:
@@ -1301,7 +1412,7 @@ elif selected_section.startswith("2."):
 # ══════════════════════════════════════════════════════════════════════════════
 # ANSICHT 3: ABSCHNITT 'NICHT VERARBEITBAR'
 # ══════════════════════════════════════════════════════════════════════════════
-elif selected_section.startswith("3."):
+elif selected_section == "nav_3":
     st.subheader(T["sec3_title"])
     st.write(
         "Daten oder Dateien, die nicht konvertiert oder berechnet werden konnten, "
@@ -1324,7 +1435,7 @@ elif selected_section.startswith("3."):
 # ══════════════════════════════════════════════════════════════════════════════
 # ANSICHT 4: FREIGEGEBENE MART-DATEN — KPI-AUSWAHL, TABELLEN & DIAGRAMME
 # ══════════════════════════════════════════════════════════════════════════════
-elif selected_section.startswith("4."):
+elif selected_section == "nav_4":
     st.subheader(T["sec4_title"])
 
     if not mart_tables:
@@ -1767,7 +1878,7 @@ elif selected_section.startswith("4."):
 # ══════════════════════════════════════════════════════════════════════════════
 # ANSICHT 5: REGELBASIERTER QUALITÄTSBERICHT (OHNE KI)
 # ══════════════════════════════════════════════════════════════════════════════
-elif selected_section.startswith("5."):
+elif selected_section == "nav_5":
     st.subheader(T["sec5_title"])
     rep = build_quality_report(cfg)
     st.markdown(str(rep["markdown"]))
@@ -1776,7 +1887,7 @@ elif selected_section.startswith("5."):
 # ══════════════════════════════════════════════════════════════════════════════
 # ANSICHT 6: BEREITSTELLUNG & DOWNLOAD FERTIGER DATEN
 # ══════════════════════════════════════════════════════════════════════════════
-elif selected_section.startswith("6."):
+elif selected_section == "nav_6":
     st.subheader(T["sec6_title"])
     export_status = get_export_storage_status(cfg)
 
