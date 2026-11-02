@@ -37,7 +37,8 @@ data_quality_platform/
 
 * [x] **Schritt 1:** Projektgerüst, Git, `.gitignore`, `.env.example`, `CLAUDE.md`
 * [x] **Schritt 2:** Erste reale Datenquelle anbinden (`raw` + Tabelle `metadata.quellen`)
-* [ ] **Schritt 3:** Dateiannahme (`inbox`), Parquet-Konvertierung und Chunking
+* [x] **Schritt 3:** Dateiannahme (`inbox`), Parquet-Konvertierung und Chunking
+* [ ] **Schritt 4:** Staging mit DuckDB (`staging`)
 
 ## Angebundene Datenquellen (`metadata.quellen`)
 

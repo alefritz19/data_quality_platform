@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 DuckDB-Datenbankverwaltung und Initialisierung der Metadaten-Tabellen.
-Erstellt die Schemata für raw, staging, mart und metadata sowie die Tabelle 'quellen'.
+Erstellt die Schemata für raw, staging, mart und metadata sowie die Tabellen
+'quellen', 'file_conversions' und 'unparseable_files'.
 """
 
 from datetime import datetime, timezone
@@ -20,7 +21,7 @@ def get_connection(config: Optional[AppConfig] = None) -> duckdb.DuckDBPyConnect
 
 
 def init_database(config: Optional[AppConfig] = None) -> None:
-    """Initialisiert alle erforderlichen Schemata und die Quellentabelle 'quellen'."""
+    """Initialisiert alle erforderlichen Schemata und die Metadaten-Tabellen."""
     conn = get_connection(config)
     try:
         conn.execute("CREATE SCHEMA IF NOT EXISTS raw;")
@@ -39,6 +40,38 @@ def init_database(config: Optional[AppConfig] = None) -> None:
                 raw_file_path VARCHAR NOT NULL,
                 file_size_bytes BIGINT NOT NULL,
                 row_count BIGINT NOT NULL
+            );
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS metadata.file_conversions (
+                file_id VARCHAR PRIMARY KEY,
+                original_filename VARCHAR NOT NULL,
+                file_format VARCHAR NOT NULL,
+                size_before_bytes BIGINT NOT NULL,
+                size_after_bytes BIGINT NOT NULL,
+                compression_ratio_pct DOUBLE NOT NULL,
+                row_count BIGINT NOT NULL,
+                chunks_count INTEGER NOT NULL,
+                duration_ms DOUBLE NOT NULL,
+                raw_path VARCHAR NOT NULL,
+                parquet_path VARCHAR NOT NULL,
+                converted_at TIMESTAMP NOT NULL
+            );
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS metadata.unparseable_files (
+                file_id VARCHAR PRIMARY KEY,
+                original_filename VARCHAR NOT NULL,
+                file_format VARCHAR NOT NULL,
+                rejected_path VARCHAR NOT NULL,
+                reason VARCHAR NOT NULL,
+                detected_at TIMESTAMP NOT NULL
             );
             """
         )
@@ -78,6 +111,92 @@ def register_source(
                 str(raw_file_path),
                 file_size,
                 row_count,
+            ],
+        )
+    finally:
+        conn.close()
+
+
+def log_file_conversion(
+    file_id: str,
+    original_filename: str,
+    file_format: str,
+    size_before_bytes: int,
+    size_after_bytes: int,
+    row_count: int,
+    chunks_count: int,
+    duration_ms: float,
+    raw_path: Path,
+    parquet_path: Path,
+    config: Optional[AppConfig] = None,
+) -> None:
+    """Protokolliert eine erfolgreiche Parquet-Konvertierung inklusive Größe und Dauer."""
+    init_database(config)
+    ratio = (
+        round((1.0 - (size_after_bytes / size_before_bytes)) * 100.0, 2)
+        if size_before_bytes > 0
+        else 0.0
+    )
+    converted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    conn = get_connection(config)
+    try:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO metadata.file_conversions (
+                file_id, original_filename, file_format,
+                size_before_bytes, size_after_bytes, compression_ratio_pct,
+                row_count, chunks_count, duration_ms,
+                raw_path, parquet_path, converted_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """,
+            [
+                file_id,
+                original_filename,
+                file_format,
+                size_before_bytes,
+                size_after_bytes,
+                ratio,
+                row_count,
+                chunks_count,
+                round(duration_ms, 2),
+                str(raw_path),
+                str(parquet_path),
+                converted_at,
+            ],
+        )
+    finally:
+        conn.close()
+
+
+def log_unparseable_file(
+    file_id: str,
+    original_filename: str,
+    file_format: str,
+    rejected_path: Path,
+    reason: str,
+    config: Optional[AppConfig] = None,
+) -> None:
+    """Protokolliert nicht verarbeitbare Dateien mit Begründung und Herkunft."""
+    init_database(config)
+    detected_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    conn = get_connection(config)
+    try:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO metadata.unparseable_files (
+                file_id, original_filename, file_format,
+                rejected_path, reason, detected_at
+            ) VALUES (?, ?, ?, ?, ?, ?);
+            """,
+            [
+                file_id,
+                original_filename,
+                file_format,
+                str(rejected_path),
+                reason,
+                detected_at,
             ],
         )
     finally:
