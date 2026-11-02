@@ -36,8 +36,14 @@ data_quality_platform/
 ## Status der Umsetzung
 
 * [x] **Schritt 1:** Projektgerüst, Git, `.gitignore`, `.env.example`, `CLAUDE.md`
-* [ ] **Schritt 2:** Erste reale Datenquelle anbinden (`raw` + Tabelle `quellen`)
+* [x] **Schritt 2:** Erste reale Datenquelle anbinden (`raw` + Tabelle `metadata.quellen`)
 * [ ] **Schritt 3:** Dateiannahme (`inbox`), Parquet-Konvertierung und Chunking
+
+## Angebundene Datenquellen (`metadata.quellen`)
+
+| Kennung | Quelle | Lizenz | Gespeicherte Felder (`raw`) |
+| :--- | :--- | :--- | :--- |
+| `smard_de_hour` | Bundesnetzagentur \| SMARD.de – Strommarktdaten Deutschland | CC BY 4.0 | `timestamp_ms`, `datetime_utc`, `region`, `grid_load_mwh`, `solar_generation_mwh`, `wind_onshore_mwh` |
 
 ## Lizenz
 

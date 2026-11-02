@@ -1,0 +1,21 @@
+# Kernverarbeitung und Speicherformat
+duckdb>=1.1.0
+pandas>=2.2.0
+pyarrow>=17.0.0
+openpyxl>=3.1.2
+
+# Netzwerk und Konfiguration
+requests>=2.32.0
+python-dotenv>=1.0.1
+
+# Datenqualität und Anomalieerkennung
+pandera>=0.20.0
+scikit-learn>=1.5.0
+
+# Orchestrierung
+dagster>=1.8.0
+dagster-webserver>=1.8.0
+
+# Visualisierung
+streamlit>=1.39.0
+plotly>=5.24.0
