@@ -351,7 +351,7 @@ if not is_dark:
                 background-color: #FFFFFF !important;
                 color: #2B3E54 !important;
             }
-            /* Nahtlos durchgehende Kopfleiste: verbunden mit dem linken Menü bis ganz nach rechts, exakt mittig zentriert */
+            /* Nahtlos durchgehende Kopfleiste: von ganz links bis ganz rechts an den Bildschirmrand */
             .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
             [data-testid="stMainBlockContainer"] > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
             div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker),
@@ -361,21 +361,24 @@ if not is_dark:
                 z-index: 9999 !important;
                 background-color: #E8F2FC !important;
                 border: none !important;
-                box-shadow: none !important;
-                padding: 18px 6rem 20px 6rem !important;
+                width: calc(100% + 4.4rem) !important;
+                max-width: none !important;
                 margin-top: -1rem !important;
-                margin-left: -6rem !important;
-                margin-right: -6rem !important;
+                margin-left: -2.2rem !important;
+                margin-right: -2.2rem !important;
                 margin-bottom: 18px !important;
+                padding: 18px 2.2rem 18px 2.2rem !important;
+                box-shadow: 0 0 0 100vmax #E8F2FC !important;
+                clip-path: inset(0 -100vmax) !important;
             }
             .unified-header-wrap {
                 display: flex !important;
                 align-items: center !important;
                 gap: 14px !important;
-                margin-top: -10px !important;
+                margin-top: -6px !important;
                 margin-bottom: 0 !important;
                 padding-top: 0 !important;
-                padding-bottom: 10px !important;
+                padding-bottom: 6px !important;
             }
             .unified-header-text {
                 display: flex !important;
@@ -402,22 +405,39 @@ if not is_dark:
                 white-space: nowrap !important;
             }
             div:has(#fixed-top-header-marker) [data-testid="stRadio"] {
-                margin-top: -10px !important;
-                padding-bottom: 10px !important;
+                margin-top: -6px !important;
+                padding-bottom: 6px !important;
             }
             div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
                 justify-content: flex-end !important;
                 flex-wrap: nowrap !important;
                 align-items: center !important;
             }
-            /* Linke Seitenleiste: exakt derselbe Ton (#E8F2FC) OHNE jede Trennlinie zur oberen Leiste */
-            [data-testid="stSidebar"],
+            /* Linkes Menü dauerhaft geöffnet & nahtlos mit der Kopfleiste verbunden */
+            [data-testid="stSidebar"] {
+                background-color: #E8F2FC !important;
+                border: none !important;
+                border-right: none !important;
+                box-shadow: none !important;
+                min-width: 280px !important;
+                max-width: 280px !important;
+                transform: none !important;
+                margin-left: 0 !important;
+                visibility: visible !important;
+                display: block !important;
+            }
             [data-testid="stSidebar"] > div,
             [data-testid="stSidebar"] > div:first-child {
                 background-color: #E8F2FC !important;
                 border: none !important;
                 border-right: none !important;
                 box-shadow: none !important;
+                width: 280px !important;
+            }
+            /* Einklapp-Pfeil ausblenden, damit das linke Menü fest stehen bleibt */
+            [data-testid="stSidebarCollapseButton"],
+            [data-testid="collapsedControl"] {
+                display: none !important;
             }
             [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
                 padding-top: 1.1rem !important;
@@ -573,7 +593,7 @@ else:
                 color: #E2F0FF !important;
                 border: 1px solid #365275 !important;
             }
-            /* Nahtlos durchgehende Kopfleiste im Dunkelmodus ohne Trennlinien */
+            /* Nahtlos durchgehende Kopfleiste im Dunkelmodus bis ganz an den rechten Rand */
             .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
             [data-testid="stMainBlockContainer"] > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
             div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker),
@@ -583,21 +603,24 @@ else:
                 z-index: 9999 !important;
                 background-color: #19283B !important;
                 border: none !important;
-                box-shadow: none !important;
-                padding: 18px 6rem 20px 6rem !important;
+                width: calc(100% + 4.4rem) !important;
+                max-width: none !important;
                 margin-top: -1rem !important;
-                margin-left: -6rem !important;
-                margin-right: -6rem !important;
+                margin-left: -2.2rem !important;
+                margin-right: -2.2rem !important;
                 margin-bottom: 18px !important;
+                padding: 18px 2.2rem 18px 2.2rem !important;
+                box-shadow: 0 0 0 100vmax #19283B !important;
+                clip-path: inset(0 -100vmax) !important;
             }
             .unified-header-wrap {
                 display: flex !important;
                 align-items: center !important;
                 gap: 14px !important;
-                margin-top: -10px !important;
+                margin-top: -6px !important;
                 margin-bottom: 0 !important;
                 padding-top: 0 !important;
-                padding-bottom: 10px !important;
+                padding-bottom: 6px !important;
             }
             .unified-header-text {
                 display: flex !important;
@@ -624,21 +647,37 @@ else:
                 white-space: nowrap !important;
             }
             div:has(#fixed-top-header-marker) [data-testid="stRadio"] {
-                margin-top: -10px !important;
-                padding-bottom: 10px !important;
+                margin-top: -6px !important;
+                padding-bottom: 6px !important;
             }
             div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
                 justify-content: flex-end !important;
                 flex-wrap: nowrap !important;
                 align-items: center !important;
             }
-            [data-testid="stSidebar"],
+            [data-testid="stSidebar"] {
+                background-color: #19283B !important;
+                border: none !important;
+                border-right: none !important;
+                box-shadow: none !important;
+                min-width: 280px !important;
+                max-width: 280px !important;
+                transform: none !important;
+                margin-left: 0 !important;
+                visibility: visible !important;
+                display: block !important;
+            }
             [data-testid="stSidebar"] > div,
             [data-testid="stSidebar"] > div:first-child {
                 background-color: #19283B !important;
                 border: none !important;
                 border-right: none !important;
                 box-shadow: none !important;
+                width: 280px !important;
+            }
+            [data-testid="stSidebarCollapseButton"],
+            [data-testid="collapsedControl"] {
+                display: none !important;
             }
             [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
                 padding-top: 1.1rem !important;
