@@ -111,6 +111,21 @@ def init_database(config: Optional[AppConfig] = None) -> None:
             );
             """
         )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS metadata.mart_gate_log (
+                gate_id VARCHAR PRIMARY KEY,
+                run_id VARCHAR NOT NULL,
+                source_table VARCHAR NOT NULL,
+                mart_table VARCHAR NOT NULL,
+                passed BOOLEAN NOT NULL,
+                blocking_reasons VARCHAR NOT NULL,
+                total_rows BIGINT NOT NULL,
+                checked_at TIMESTAMP NOT NULL
+            );
+            """
+        )
     finally:
         conn.close()
 

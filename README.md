@@ -40,7 +40,8 @@ data_quality_platform/
 * [x] **Schritt 3:** Dateiannahme (`inbox`), Parquet-Konvertierung und Chunking
 * [x] **Schritt 4:** Staging mit DuckDB (`staging` + Protokollierung nicht konvertierbarer Werte)
 * [x] **Schritt 5:** Qualitätsprüfungen und `metadata.quality_log` (inkl. Abschnitt „Nicht verarbeitbar“)
-* [ ] **Schritt 6:** Abschließende Prüfung vor der Visualisierung (Gatekeeper-Schritt)
+* [x] **Schritt 6:** Abschließende Prüfung vor der Visualisierung (`final_gate` → `mart`)
+* [ ] **Schritt 7:** Dagster: Assets, Asset Checks, Sensor für den Eingangsordner
 
 ## Angebundene Datenquellen (`metadata.quellen`)
 
