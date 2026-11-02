@@ -15,16 +15,17 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from src.config import AppConfig, load_config
 from src.database import get_connection, init_database
 
 EMAIL_REGEX = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
 IBAN_REGEX = re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b")
-PHONE_REGEX = re.compile(r"(?:\+49|0049|0)\s?\d{2,4}[\s/-]?\d{4,9}")
+PHONE_REGEX = re.compile(r"\b(?:\+49|0049|0\d{2,4})[\s/-]\d{4,9}\b")
 TRUNCATED_REGEX = re.compile(r"(\.\.\.|…|\ufffd|\\\s*$)")
 
 NON_NEGATIVE_KEYWORDS = ("mwh", "load", "generation", "amount", "price", "quantity", "count")
+EXCLUDED_OUTLIER_COLUMNS = ("timestamp_ms", "dwd_station_id", "row_index", "id")
 
 
 def _check_if_recurring(
@@ -217,7 +218,7 @@ def run_quality_checks_on_table(
                                 ),
                             )
 
-                if len(clean_num) >= 10:
+                if len(clean_num) >= 10 and col.lower() not in EXCLUDED_OUTLIER_COLUMNS:
                     q1 = float(np.percentile(clean_num, 25))
                     q3 = float(np.percentile(clean_num, 75))
                     iqr = q3 - q1

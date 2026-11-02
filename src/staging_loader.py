@@ -108,30 +108,8 @@ def stage_parquet_to_duckdb(
         num_hits = sum(1 for v in sample if _try_parse_number(v)[1])
         date_hits = sum(1 for v in sample if _try_parse_date(v)[1])
 
-        # Spalte ist mehrheitlich numerisch (>= 70 %)
-        if num_hits / len(sample) >= 0.70 and "date" not in col and "time" not in col:
-            parsed_col: List[Optional[float]] = []
-            for idx, raw_val in enumerate(series):
-                num_val, ok = _try_parse_number(raw_val)
-                parsed_col.append(num_val)
-                if not ok:
-                    rec_id = f"{target_table}_{col}_{idx}"
-                    unparseable_entries.append(
-                        (
-                            rec_id,
-                            source_name,
-                            f"staging.{target_table}",
-                            int(idx),
-                            col,
-                            str(raw_val)[:250],
-                            "Ungültiges Zahlenformat in numerischer Spalte",
-                            detected_at,
-                        )
-                    )
-            df[col] = pd.Series(parsed_col, dtype="Float64")
-
         # Spalte ist mehrheitlich ein Datum (>= 70 %)
-        elif date_hits / len(sample) >= 0.70:
+        if date_hits / len(sample) >= 0.70:
             parsed_dates: List[Optional[datetime]] = []
             for idx, raw_val in enumerate(series):
                 dt_val, ok = _try_parse_date(raw_val)
@@ -151,6 +129,28 @@ def stage_parquet_to_duckdb(
                         )
                     )
             df[col] = pd.to_datetime(parsed_dates)
+
+        # Spalte ist mehrheitlich numerisch (>= 70 %)
+        elif num_hits / len(sample) >= 0.70:
+            parsed_col: List[Optional[float]] = []
+            for idx, raw_val in enumerate(series):
+                num_val, ok = _try_parse_number(raw_val)
+                parsed_col.append(num_val)
+                if not ok:
+                    rec_id = f"{target_table}_{col}_{idx}"
+                    unparseable_entries.append(
+                        (
+                            rec_id,
+                            source_name,
+                            f"staging.{target_table}",
+                            int(idx),
+                            col,
+                            str(raw_val)[:250],
+                            "Ungültiges Zahlenformat in numerischer Spalte",
+                            detected_at,
+                        )
+                    )
+            df[col] = pd.Series(parsed_col, dtype="Float64")
         else:
             df[col] = series.astype(str).str.strip().where(series.notna(), None)
 
