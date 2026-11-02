@@ -334,40 +334,56 @@ if not is_dark:
             [data-testid="stHeader"] {
                 display: none !important;
             }
-            .block-container {
+            /* Hauptcontainer auf 100 % Breite ohne seitliche Lücken */
+            .block-container,
+            [data-testid="stAppViewBlockContainer"],
+            [data-testid="stMainBlockContainer"] {
+                max-width: 100% !important;
                 padding-top: 0rem !important;
-                padding-left: 2.5rem !important;
-                padding-right: 2.5rem !important;
+                padding-left: 2.2rem !important;
+                padding-right: 2.2rem !important;
+            }
+            [data-testid="stMain"], section.main {
+                overflow-x: hidden !important;
             }
             /* Haupthintergrund: klares Weiß */
             .stApp, [data-testid="stAppViewContainer"] {
                 background-color: #FFFFFF !important;
                 color: #2B3E54 !important;
             }
-            /* Nahtlos mit dem linken Menü verbundene Kopfleiste (von ganz links bis ganz rechts) */
+            /* Nahtlos durchgehende Kopfleiste: verbunden mit dem linken Menü bis ganz nach rechts, exakt mittig zentriert */
             .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
-            div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker) {
+            [data-testid="stMainBlockContainer"] > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker),
+            div[data-testid="stLayoutWrapper"]:has(#fixed-top-header-marker) {
                 position: sticky !important;
                 top: 0 !important;
                 z-index: 9999 !important;
                 background-color: #E8F2FC !important;
-                border-bottom: 1px solid #C5DCF2 !important;
-                padding: 14px 2.5rem 16px 2.5rem !important;
-                margin-left: -2.5rem !important;
-                margin-right: -2.5rem !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 18px 6rem 20px 6rem !important;
+                margin-top: -1rem !important;
+                margin-left: -6rem !important;
+                margin-right: -6rem !important;
                 margin-bottom: 18px !important;
-                box-shadow: 0 2px 6px rgba(44, 72, 102, 0.05) !important;
             }
             .unified-header-wrap {
                 display: flex !important;
                 align-items: center !important;
                 gap: 14px !important;
+                margin-top: -10px !important;
+                margin-bottom: 0 !important;
+                padding-top: 0 !important;
+                padding-bottom: 10px !important;
             }
             .unified-header-text {
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: center !important;
                 gap: 4px !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             .unified-header-title {
                 color: #26425E !important;
@@ -375,22 +391,33 @@ if not is_dark:
                 font-weight: 500 !important;
                 line-height: 1.2 !important;
                 margin: 0 !important;
+                padding: 0 !important;
             }
             .unified-header-sub {
                 color: #3E5E7E !important;
                 font-size: 0.85rem !important;
-                line-height: 1.3 !important;
+                line-height: 1.25 !important;
                 margin: 0 !important;
+                padding: 0 !important;
                 white-space: nowrap !important;
             }
-            .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
+            div:has(#fixed-top-header-marker) [data-testid="stRadio"] {
+                margin-top: -10px !important;
+                padding-bottom: 10px !important;
+            }
+            div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
                 justify-content: flex-end !important;
                 flex-wrap: nowrap !important;
+                align-items: center !important;
             }
-            /* Linke Seitenleiste: exakt derselbe Ton (#E8F2FC), nahtloser Übergang oben */
-            [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {
+            /* Linke Seitenleiste: exakt derselbe Ton (#E8F2FC) OHNE jede Trennlinie zur oberen Leiste */
+            [data-testid="stSidebar"],
+            [data-testid="stSidebar"] > div,
+            [data-testid="stSidebar"] > div:first-child {
                 background-color: #E8F2FC !important;
-                border-right: 1px solid #C5DCF2 !important;
+                border: none !important;
+                border-right: none !important;
+                box-shadow: none !important;
             }
             [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
                 padding-top: 1.1rem !important;
@@ -510,10 +537,16 @@ else:
             [data-testid="stHeader"] {
                 display: none !important;
             }
-            .block-container {
+            .block-container,
+            [data-testid="stAppViewBlockContainer"],
+            [data-testid="stMainBlockContainer"] {
+                max-width: 100% !important;
                 padding-top: 0rem !important;
-                padding-left: 2.5rem !important;
-                padding-right: 2.5rem !important;
+                padding-left: 2.2rem !important;
+                padding-right: 2.2rem !important;
+            }
+            [data-testid="stMain"], section.main {
+                overflow-x: hidden !important;
             }
             .stApp, [data-testid="stAppViewContainer"] {
                 background-color: #121D2B !important;
@@ -540,30 +573,39 @@ else:
                 color: #E2F0FF !important;
                 border: 1px solid #365275 !important;
             }
-            /* Nahtlos verbundener Kopfbereich im Dunkelmodus */
+            /* Nahtlos durchgehende Kopfleiste im Dunkelmodus ohne Trennlinien */
             .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
-            div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker) {
+            [data-testid="stMainBlockContainer"] > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker),
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(#fixed-top-header-marker),
+            div[data-testid="stLayoutWrapper"]:has(#fixed-top-header-marker) {
                 position: sticky !important;
                 top: 0 !important;
                 z-index: 9999 !important;
                 background-color: #19283B !important;
-                border-bottom: 1px solid #2A405C !important;
-                padding: 14px 2.5rem 16px 2.5rem !important;
-                margin-left: -2.5rem !important;
-                margin-right: -2.5rem !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 18px 6rem 20px 6rem !important;
+                margin-top: -1rem !important;
+                margin-left: -6rem !important;
+                margin-right: -6rem !important;
                 margin-bottom: 18px !important;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
             }
             .unified-header-wrap {
                 display: flex !important;
                 align-items: center !important;
                 gap: 14px !important;
+                margin-top: -10px !important;
+                margin-bottom: 0 !important;
+                padding-top: 0 !important;
+                padding-bottom: 10px !important;
             }
             .unified-header-text {
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: center !important;
                 gap: 4px !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             .unified-header-title {
                 color: #FFFFFF !important;
@@ -571,21 +613,32 @@ else:
                 font-weight: 500 !important;
                 line-height: 1.2 !important;
                 margin: 0 !important;
+                padding: 0 !important;
             }
             .unified-header-sub {
                 color: #DCE7F3 !important;
                 font-size: 0.85rem !important;
-                line-height: 1.3 !important;
+                line-height: 1.25 !important;
                 margin: 0 !important;
+                padding: 0 !important;
                 white-space: nowrap !important;
             }
-            .block-container > div[data-testid="stVerticalBlock"] > div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
+            div:has(#fixed-top-header-marker) [data-testid="stRadio"] {
+                margin-top: -10px !important;
+                padding-bottom: 10px !important;
+            }
+            div:has(#fixed-top-header-marker) [data-testid="stRadio"] > div {
                 justify-content: flex-end !important;
                 flex-wrap: nowrap !important;
+                align-items: center !important;
             }
-            [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {
+            [data-testid="stSidebar"],
+            [data-testid="stSidebar"] > div,
+            [data-testid="stSidebar"] > div:first-child {
                 background-color: #19283B !important;
-                border-right: 1px solid #2A405C !important;
+                border: none !important;
+                border-right: none !important;
+                box-shadow: none !important;
             }
             [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
                 padding-top: 1.1rem !important;
