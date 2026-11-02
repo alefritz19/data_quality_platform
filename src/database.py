@@ -75,6 +75,21 @@ def init_database(config: Optional[AppConfig] = None) -> None:
             );
             """
         )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS metadata.unparseable_rows (
+                record_id VARCHAR PRIMARY KEY,
+                source_name VARCHAR NOT NULL,
+                table_name VARCHAR NOT NULL,
+                row_index BIGINT NOT NULL,
+                column_name VARCHAR NOT NULL,
+                raw_value VARCHAR,
+                reason VARCHAR NOT NULL,
+                detected_at TIMESTAMP NOT NULL
+            );
+            """
+        )
     finally:
         conn.close()
 
