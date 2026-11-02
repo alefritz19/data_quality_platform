@@ -8,13 +8,22 @@
 # Datenverzeichnisse und DuckDB-Dateien
 data/*/*
 !data/*/.gitkeep
+data/prod/
+data/demo/
 *.duckdb
 *.duckdb.wal
 *.parquet
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.json
+*.jsonl
 
 # Logs und Dagster-Laufzeitdaten
 logs/*
 !logs/.gitkeep
+*.log
 .dagster/
 dagster_home/
 

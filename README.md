@@ -1,5 +1,11 @@
 # Transparente Plattform für Datenqualität und Parquet-Verarbeitung
 
+[![CI](https://github.com/alefritz19/data_quality_platform/actions/workflows/ci.yml/badge.svg)](https://github.com/alefritz19/data_quality_platform/actions)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
+[![DuckDB](https://img.shields.io/badge/DuckDB-In--Process%20OLAP-FFF000.svg)](https://duckdb.org/)
+[![Dagster](https://img.shields.io/badge/Orchestration-Dagster-4F46E5.svg)](https://dagster.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 Technische Anwendung zur Dateiannahme, Parquet-Konvertierung (ZSTD) und mehrstufigen Qualitätsprüfung realer, öffentlicher Datensätze mit Python, DuckDB, Dagster und Streamlit.
 
 * **Live-Demo (schreibgeschützt):** [http://89.168.112.220:8503](http://89.168.112.220:8503)
@@ -49,6 +55,13 @@ Automatisierte Erstellung von Markdown-Qualitätsberichten und Bereitstellung fe
 
 ---
 
+### 6. Dagster-Orchestrierung (Assets, Sensor & Asset Checks)
+Deklarative End-to-End-Pipeline: Der Eingangs-Sensor (`inbox_file_sensor`) erkennt neue Dateien im Verzeichnis `data/inbox`, stößt die ZSTD-Parquet-Konvertierung in Chunks an und leitet Daten über Staging und Qualitätsprüfung bis zur Freigabe in `mart`. Integrierte Asset Checks garantieren Datenintegrität auf jedem Verarbeitungsschritt.
+
+![Dagster Asset Graph & Orchestrierung](assets/08_dagster_pipeline.png)
+
+---
+
 ## Technischer Aufbau & Funktionen
 
 * **Nachvollziehbare Datenquellen (`metadata.quellen`):** Verarbeitung öffentlicher Originaldaten der Bundesnetzagentur (SMARD.de) und des Deutschen Wetterdienstes (DWD, Messstation 01420 Frankfurt am Main). Jede Quelle wird mit Name, Abruf-URL, Lizenz und Zeitstempel dokumentiert.
@@ -68,12 +81,27 @@ Automatisierte Erstellung von Markdown-Qualitätsberichten und Bereitstellung fe
 
 ---
 
-## Gemessene Laufzeit- und Konvertierungswerte (reale Datensätze)
+## Gemessene Laufzeit- und Konvertierungswerte
+
+### 1. Öffentliche Originaldatensätze (SMARD.de & DWD)
 
 | Datensatz (`mart`) | Quelle & Lizenz | Zeilen | CSV (`raw`) | Parquet (`ZSTD`) | Platzersparnis | Konvertierungsdauer |
 | :--- | :--- | ---: | ---: | ---: | ---: | ---: |
 | `smard_strommarkt_de` | Bundesnetzagentur \| SMARD.de (CC BY 4.0) | 673 | 38.294 B | 8.666 B | **77,37 %** | **89,9 ms** |
 | `dwd_wetter_frankfurt` | Deutscher Wetterdienst – Station 01420 (GeoNutzV / CC BY 4.0) | 673 | 34.670 B | 6.492 B | **81,27 %** | **92,7 ms** |
+
+### 2. High-Volume Skalierungs- & Memory-Benchmark (10.000 bis 1.000.000 Zeilen)
+
+Messung des streaming-basierten Chunk-Konverters (`pyarrow.csv` / `pyarrow.parquet` mit ZSTD-Kompression, Level 6) auf Oracle Cloud Server (Ubuntu Linux ARM64, Python 3.12, 4 vCPUs):
+
+| Szenario | Zeilen | Rohdaten (CSV) | Parquet (ZSTD) | Ersparnis | Laufzeit | Durchsatz | Peak-RAM (RSS) |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **Kompakt (Demo)** | 10.000 | 0,77 MB | 0,34 MB | **56,0 %** (2,3x) | 0,03 s | 391.224 Z/s (30,2 MB/s) | **137,6 MB** |
+| **Multi-Month** | 100.000 | 7,71 MB | 3,22 MB | **58,2 %** (2,4x) | 0,22 s | 451.557 Z/s (34,8 MB/s) | **193,2 MB** |
+| **Multi-Year Real-World** | 500.000 | 38,53 MB | 15,82 MB | **58,9 %** (2,4x) | 1,05 s | 475.967 Z/s (36,7 MB/s) | **280,4 MB** |
+| **High-Volume Enterprise** | 1.000.000 | 77,06 MB | 31,60 MB | **59,0 %** (2,4x) | 2,14 s | 467.743 Z/s (36,0 MB/s) | **400,7 MB** |
+
+> **Speichereffizienz:** Durch das blockbasierte Streaming (`chunk_size_rows`) bleibt der Speicherbedarf selbst bei 1 Million Zeilen stabil bei ~400 MB RAM. 1 Million Datensätze werden in nur 2,14 Sekunden verarbeitet (~467.000 Zeilen/s).
 
 ---
 
@@ -81,59 +109,100 @@ Automatisierte Erstellung von Markdown-Qualitätsberichten und Bereitstellung fe
 
 ```text
 data_quality_platform/
-├── assets/                     # Screenshot-Dokumentation der Oberfläche
+├── .github/
+│   └── workflows/
+│       └── ci.yml              # GitHub Actions CI Workflow (pytest auf Python 3.12)
+├── assets/                     # Screenshot- und Diagramm-Dokumentation
+├── tests/                      # Automatisierte Unit-Tests (pytest)
+│   └── test_quality_checks.py  # Tests für Lücken, Duplikate und IQR-Ausreißer
 ├── src/                        # Kernmodule der Pipeline
 │   ├── config.py               # Zentrale Konfiguration über Umgebungsvariablen (PROD / DEMO)
-│   ├── db.py                   # DuckDB-Schemata (metadata, staging, mart)
+│   ├── database.py             # DuckDB-Schemata (metadata, staging, mart)
 │   ├── ingest_source.py        # Abruf öffentlicher Datenquellen (SMARD.de & DWD 01420)
 │   ├── file_converter.py       # Eingangsordner-Verarbeitung, Chunking & Parquet-Konvertierung
 │   ├── staging_loader.py       # Typisierung nach staging & Erfassung nicht konvertierbarer Werte
 │   ├── quality_checks.py       # Stufe 1: Regelbasierte Qualitätsprüfungen & quality_log
-│   ├── ml_anomaly_detector.py  # Stufe 2: Isolation Forest mit Kennzahl-Begründung
+│   ├── anomaly_model.py        # Stufe 2: Isolation Forest mit Kennzahl-Begründung
 │   ├── final_gate.py           # Abschließende Freigabeprüfung vor Übernahme nach mart
 │   ├── report_generator.py     # Regelbasierter Qualitätsbericht (Markdown)
 │   └── export_manager.py       # Export-Pakete, TTL-Bereinigung & Speicherlimits
-├── dagster_app/                # Dagster Assets, Asset Checks, Schedules & Inbox-Sensor
+├── dagster_app/                # Dagster Orchestrierung
+│   ├── assets.py               # Deklarative Software-Defined Assets
+│   ├── checks.py               # Asset Checks (Vollständigkeit, Gate-Freigabe)
+│   ├── sensors.py              # Inbox File Sensor (automatische Dateierkennung)
+│   ├── schedules.py            # Täglicher Abruf-Schedule
+│   └── definitions.py          # Dagster Definitions-Einstiegspunkt
 ├── dashboard/                  # Streamlit-Oberfläche (dashboard/app.py)
 ├── config/                     # Umgebungsdateien (.env.prod.example, .env.demo.example)
-├── docker-compose.prod.yml     # Produktiv-Kontur (72h TTL, 5 GB Exportlimit, bis 500 MB Upload)
-├── docker-compose.demo.yml     # Demo-Kontur (24h TTL, 500 MB Exportlimit, Schreibschutz aktiv)
+├── docker-compose.prod.yml     # Produktiv-Kontur (Dashboard Port 8502, Dagster Port 3000)
+├── docker-compose.demo.yml     # Demo-Kontur (schreibgeschützt, Dashboard Port 8503)
 ├── requirements.txt            # Python-Abhängigkeiten
 └── README.md                   # Projektdokumentation
 ```
 
 ---
 
-## Lokaler Start & Betrieb (`PROD` und `DEMO`)
+## Start & Betrieb
 
-### 1. Abhängigkeiten installieren
+### 1. Schnellstart mit Docker Compose (Empfohlen)
+
+Das Repository enthält vorkonfigurierte Multi-Container-Umgebungen mit definierten Ressourcenlimits und persistenten Volumes:
+
 ```bash
+# Öffentliche Demo-Umgebung starten (schreibgeschützt, Port 8503):
+docker compose -f docker-compose.demo.yml up -d --build
+
+# Produktiv-Umgebung starten (voller Zugriff, Port 8502 & Dagster Port 3000):
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Zum Beenden:
+```bash
+docker compose -f docker-compose.demo.yml down
+# bzw.
+docker compose -f docker-compose.prod.yml down
+```
+
+---
+
+### 2. Manueller Start über Python Virtualenv
+
+```bash
+# Virtuelle Umgebung einrichten
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-### 2. Datenabruf und Pipeline-Durchlauf über die Kommandozeile
-```bash
+# Datenabruf und Pipeline manuell durchführen
 python3 -m src.ingest_source
 python3 -m src.file_converter
 python3 -m src.staging_loader
 python3 -m src.quality_checks
-python3 -m src.ml_anomaly_detector
+python3 -m src.anomaly_model
 python3 -m src.final_gate
 python3 -m src.report_generator
-```
 
-### 3. Hauptversion (`PROD`, Port `8502`) und Demoversion (`DEMO`, Port `8503`) starten
-```bash
-# Hauptversion (PROD) mit vollem Schreib- und Pipeline-Zugriff auf Port 8502:
+# Hauptversion (PROD) auf Port 8502 starten:
 APP_ENV=prod DATA_DIR=./data/prod DEMO_READ_ONLY=false \
   streamlit run dashboard/app.py --server.port 8502
 
-# Öffentliche Demoversion (DEMO) mit aktiviertem Schreibschutz auf Port 8503:
+# Demoversion (DEMO, schreibgeschützt) auf Port 8503 starten:
 APP_ENV=demo DATA_DIR=./data/demo DEMO_READ_ONLY=true ADMIN_PIN=<eigener_pin> \
   streamlit run dashboard/app.py --server.port 8503
 ```
+
+---
+
+### 3. Automatisierte Tests (pytest) & CI
+
+Die Unit-Tests prüfen die Qualitätsregeln (`quality_checks.py`) in einer temporären, isolierten DuckDB-Datenbank:
+
+```bash
+# Tests lokal ausführen
+pytest tests/
+```
+
+Bei jedem Push oder Pull Request auf `main` führt der GitHub Actions Workflow (`.github/workflows/ci.yml`) die Tests automatisch aus und aktualisiert das CI-Statusbadge.
 
 ---
 
