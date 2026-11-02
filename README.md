@@ -1,39 +1,99 @@
-# Plattform für Datenqualität und Parquet-Verarbeitung
+# Transparente Plattform für Datenqualität und Parquet-Verarbeitung
 
-Plattform zur Annahme, Parquet-Konvertierung und mehrstufigen Qualitätsprüfung realer, öffentlicher Datensätze mit DuckDB, Dagster und Streamlit.
+Technische Anwendung zur Dateiannahme, Parquet-Konvertierung (ZSTD) und mehrstufigen Qualitätsprüfung realer, öffentlicher Datensätze mit Python, DuckDB, Dagster und Streamlit.
 
-## Kernfunktionen (im Aufbau nach 14-Schritte-Plan)
+Der Fokus des Projekts liegt auf Nachvollziehbarkeit: Daten werden beim Einlesen nicht stillschweigend verändert oder gelöscht. Stattdessen werden Konvertierungskennzahlen, erkannte Lücken, statistische Auffälligkeiten und nicht verarbeitbare Einträge mit Quelle, Spalte und Ursache in DuckDB-Metadatentabellen protokolliert.
 
-* **Dateiannahme & Parquet-Konvertierung:** Überwachter Eingangsordner für gängige Formate (CSV, Excel, JSON). Verarbeitung großer Dateien in Chunks und Speicherung als Parquet. Messung von Dateigröße (vorher/nachher) und Konvertierungsdauer.
-* **Nachvollziehbare Datenquellen:** Verarbeitung ausschließlich realer, öffentlicher Datenquellen (z. B. Bundesnetzagentur / SMARD, Deutscher Wetterdienst / DWD). Jede Quelle wird mit Name, URL, Lizenz und Abrufdatum in der Tabelle `quellen` protokolliert.
-* **Mehrstufige Qualitätsprüfung:** Protokollierung jedes Befunds mit Quelle, Tabelle, Spalte, Regel, Anzahl und prozentualem Anteil im `quality_log`. Nicht verarbeitbare Zeilen werden gesondert mit Ursache ausgewiesen.
-* **Abschließende Prüfung vor Visualisierung:** Eigener Prüfschritt vor der Freigabe für das Dashboard.
-* **Temporäre Datenbereitstellung:** Geprüfte Parquet-Dateien und Berichte stehen zeitlich begrenzt zum Download bereit (`prod`: 72 Stunden / max. 5 GB; `demo`: 24 Stunden / max. 500 MB) und werden danach automatisch gelöscht.
-* **Getrennte Umgebungen:** Vollständige Trennung zwischen Produktiv-Orchestrierung (`docker-compose.prod.yml`) und ressourcenbegrenzter Demo-Orchestrierung (`docker-compose.demo.yml`).
+---
+
+## Technischer Aufbau & Funktionen
+
+* **Nachvollziehbare Datenquellen (`metadata.quellen`):** Verarbeitung öffentlicher Originaldaten der Bundesnetzagentur (SMARD.de) und des Deutschen Wetterdienstes (DWD, Messstation 01420 Frankfurt am Main). Jede Quelle wird mit Name, Abruf-URL, Lizenz und Zeitstempel dokumentiert.
+* **Dateiannahme & Parquet-Konvertierung (`metadata.file_conversions`):** Überwachter Eingangsordner (`data/inbox`) für `CSV`, `TSV`, `XLSX`, `XLS`, `JSON`, `JSONL` und `Parquet`. Große Dateien werden in konfigurierbaren Chunks verarbeitet und mit ZSTD-Kompression als Parquet gespeichert. Dateigröße vor/nach der Konvertierung, Kompressionsrate und Laufzeit in Millisekunden werden gemessen.
+* **Gesonderter Ausweis nicht verarbeitbarer Daten (`metadata.unparseable_files`, `metadata.unparseable_rows`):** Beschädigte Dateien oder einzelne Werte, die sich bei der Typisierung im Staging nicht konvertieren lassen, werden nicht verworfen, sondern mit Rohwert, Zieltyp und Fehlergrund protokolliert.
+* **Zweistufige Qualitätsprüfung:**
+  1. **Stufe 1 – Regelbasierte Prüfung (`metadata.quality_log`):** Prüfung auf fehlende Werte (`NULL`), Duplikate, unplausible Negativwerte, statistische Ausreißer (IQR-Verfahren `1,5 × IQR` und `|z-Score| > 3,0`) sowie einfache reguläre Ausdrücke für gängige Muster (E-Mail, IBAN, Telefonnummern). Wiederkehrende Befunde werden markiert.
+  2. **Stufe 2 – Lernende Anomalieprüfung (`metadata.ml_anomaly_flags`):** Ergänzender `IsolationForest`-Lauf auf numerischen Zeitreihen. Das Modell verändert keine Daten; jede Markierung wird nur zusammen mit der hauptverantwortlichen Spalte, dem beobachteten Wert, dem Spaltenmedian sowie dem z-Score und IQR-Abstand gespeichert.
+* **Freigabeprüfung vor Visualisierung (`metadata.mart_gate_log`):** Tabellen werden erst nach bestandenem Prüfschritt (`final_gate`) in das Schema `mart` übernommen und im Dashboard freigeschaltet.
+* **Tabellen- und KPI-zentriertes Dashboard (`dashboard/app.py`):**
+  * Frei wählbare KPI-Karten für jede freigegebene Tabelle (Durchschnitt, Median, Minimum, Maximum, Summe, Vollständigkeit in %).
+  * Spalten-Steckbrief & Transparenz-Matrix mit Kennzahlen und Befunden je Spalte.
+  * Aggregierte Tages-/Gruppentabellen, Einzelzeilen-Inspektor (Filter für Lücken und Isolation-Forest-Markierungen) sowie wählbare Linien-, Balken- und Kreisdiagramme.
+  * Umschaltbare Oberfläche (Deutsch / Englisch sowie heller und dunkler Modus).
+* **Temporäre Datenbereitstellung (`data/export`):** Bereitstellung geprüfter Parquet-Dateien und Markdown-Qualitätsberichte als Download-Paket (`.parquet`, `.md`, `.zip`) mit automatischer Löschfrist (TTL) und Speicherbegrenzung.
+* **Getrennte Laufzeitumgebungen (`PROD` / `DEMO`):** Steuerung über Umgebungsvariablen (`APP_ENV`, `DEMO_READ_ONLY`). In der Demo-Umgebung sind Schreib- und Pipeline-Aktionen standardmäßig gesperrt.
+
+---
+
+## Gemessene Laufzeit- und Konvertierungswerte (reale Datensätze)
+
+| Datensatz (`mart`) | Quelle & Lizenz | Zeilen | CSV (`raw`) | Parquet (`ZSTD`) | Platzersparnis | Konvertierungsdauer |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: |
+| `smard_strommarkt_de` | Bundesnetzagentur \| SMARD.de (CC BY 4.0) | 673 | 38.294 B | 8.666 B | **77,37 %** | **89,9 ms** |
+| `dwd_wetter_frankfurt` | Deutscher Wetterdienst – Station 01420 (GeoNutzV / CC BY 4.0) | 673 | 34.670 B | 6.492 B | **81,27 %** | **92,7 ms** |
+
+---
 
 ## Projektstruktur
 
 ```text
 data_quality_platform/
-├── src/                  # Gemeinsamer Code (Ingest, Parquet-Konvertierung, Checks, Berichte)
-├── dagster_app/          # Dagster Assets, Asset Checks, Schedules, Sensors
-├── dashboard/            # Streamlit-Anwendung
-├── config/               # Umgebungskonfigurationen
-├── data/                 # Lokale Datenschichten (nicht in Git)
-│   ├── inbox/            # Eingangsordner für neue Dateien
-│   ├── raw/              # Unveränderte Originaldaten
-│   ├── staging/          # Bereinigte und typisierte Parquet-Daten
-│   ├── mart/             # DuckDB-Datenbank, Kennzahlen und quality_log
-│   ├── export/           # Temporäre Bereitstellung geprüfter Daten
-│   └── rejected/         # Nicht verarbeitbare Daten mit Fehlerursache
-├── logs/                 # Laufzeitprotokolle (nicht in Git)
-├── .env.example          # Konfigurationsvorlage ohne Geheimnisse
-├── CLAUDE.md             # Verbindliche Architektur- und Arbeitsregeln
-├── LICENSE               # MIT-Lizenz
-└── README.md             # Projektdokumentation
+├── src/                        # Kernmodule der Pipeline
+│   ├── config.py               # Zentrale Konfiguration über Umgebungsvariablen (PROD / DEMO)
+│   ├── db.py                   # DuckDB-Schemata (metadata, staging, mart)
+│   ├── ingest_source.py        # Abruf öffentlicher Datenquellen (SMARD.de & DWD 01420)
+│   ├── file_converter.py       # Eingangsordner-Verarbeitung, Chunking & Parquet-Konvertierung
+│   ├── staging_loader.py       # Typisierung nach staging & Erfassung nicht konvertierbarer Werte
+│   ├── quality_checks.py       # Stufe 1: Regelbasierte Qualitätsprüfungen & quality_log
+│   ├── ml_anomaly_detector.py  # Stufe 2: Isolation Forest mit Kennzahl-Begründung
+│   ├── final_gate.py           # Abschließende Freigabeprüfung vor Übernahme nach mart
+│   ├── report_generator.py     # Regelbasierter Qualitätsbericht (Markdown)
+│   └── export_manager.py       # Export-Pakete, TTL-Bereinigung & Speicherlimits
+├── dagster_app/                # Dagster Assets, Asset Checks, Schedules & Inbox-Sensor
+├── dashboard/                  # Streamlit-Oberfläche (dashboard/app.py)
+├── config/                     # Umgebungsdateien (.env.prod.example, .env.demo.example)
+├── docker-compose.prod.yml     # Produktiv-Kontur (72h TTL, 5 GB Exportlimit, bis 500 MB Upload)
+├── docker-compose.demo.yml     # Demo-Kontur (24h TTL, 500 MB Exportlimit, Schreibschutz aktiv)
+├── requirements.txt            # Python-Abhängigkeiten
+└── README.md                   # Projektdokumentation
 ```
 
-## Status der Umsetzung
+---
+
+## Lokaler Start & Betrieb (`PROD` und `DEMO`)
+
+### 1. Abhängigkeiten installieren
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2. Datenabruf und Pipeline-Durchlauf über die Kommandozeile
+```bash
+python3 -m src.ingest_source
+python3 -m src.file_converter
+python3 -m src.staging_loader
+python3 -m src.quality_checks
+python3 -m src.ml_anomaly_detector
+python3 -m src.final_gate
+python3 -m src.report_generator
+```
+
+### 3. Hauptversion (`PROD`, Port `8502`) und Demoversion (`DEMO`, Port `8503`) starten
+```bash
+# Hauptversion (PROD) mit vollem Schreib- und Pipeline-Zugriff auf Port 8502:
+APP_ENV=prod DATA_DIR=./data/prod DEMO_READ_ONLY=false \
+  streamlit run dashboard/app.py --server.port 8502
+
+# Öffentliche Demoversion (DEMO) mit aktiviertem Schreibschutz auf Port 8503:
+APP_ENV=demo DATA_DIR=./data/demo DEMO_READ_ONLY=true ADMIN_PIN=2026 \
+  streamlit run dashboard/app.py --server.port 8503
+```
+
+---
+
+## Umgesetzte Meilensteine (14-Schritte-Plan)
 
 * [x] **Schritt 1:** Projektgerüst, Git, `.gitignore`, `.env.example`, `CLAUDE.md`
 * [x] **Schritt 2:** Erste reale Datenquelle anbinden (`raw` + Tabelle `metadata.quellen`)
@@ -48,14 +108,7 @@ data_quality_platform/
 * [x] **Schritt 11:** Demo- und Prod-Kontur (`docker-compose.prod.yml`, `docker-compose.demo.yml`, Limits, Schreibschutz)
 * [x] **Schritt 12:** Weitere reale Quellen hinzufügen (Deutscher Wetterdienst / DWD Station 01420 Frankfurt/Main)
 * [x] **Schritt 13:** Lernende Anomalieprüfung (zweite Stufe: Isolation Forest mit erklärbarer Begründung in `metadata.ml_anomaly_flags`)
-* [ ] **Schritt 14:** Deployment auf Oracle-Server, README mit echten Zahlen
-
-## Angebundene Datenquellen (`metadata.quellen`)
-
-| Kennung | Quelle | Lizenz | Gespeicherte Felder (`raw`) |
-| :--- | :--- | :--- | :--- |
-| `smard_de_hour` | Bundesnetzagentur \| SMARD.de – Strommarktdaten Deutschland | CC BY 4.0 | `timestamp_ms`, `datetime_utc`, `region`, `grid_load_mwh`, `solar_generation_mwh`, `wind_onshore_mwh` |
-| `dwd_station_01420` | Deutscher Wetterdienst (DWD) – Messstation 01420 Frankfurt am Main | GeoNutzV / CC BY 4.0 | `datetime_utc`, `dwd_station_id`, `temperature_c`, `wind_speed_kmh`, `solar_irradiation_kwh_m2`, `precipitation_mm`, `relative_humidity_pct`, `cloud_cover_pct` |
+* [x] **Schritt 14:** Deployment von `PROD` (`8502`) und `DEMO` (`8503`) auf dem Server sowie Dokumentation der realen Messwerte
 
 ## Lizenz
 

@@ -57,6 +57,7 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "nav_5": "Regelbasierter Qualitätsbericht",
         "nav_6": "Bereitstellung & Daten-Download",
         "intake_title": "Dateiannahme & Pipeline",
+        "pin_label": "Admin-PIN (Schreibschutz):",
         "upload_label": "Datei ablegen",
         "btn_run_all": "SMARD + DWD laden & prüfen",
         "btn_run_inbox": "Eingangsordner (inbox) prüfen",
@@ -93,6 +94,7 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "nav_5": "Rule-Based Quality Report",
         "nav_6": "Export & Download Ready Data",
         "intake_title": "File Intake & Pipeline",
+        "pin_label": "Admin PIN (Read-Only):",
         "upload_label": "Drop file here",
         "btn_run_all": "Fetch SMARD + DWD & Run Pipeline",
         "btn_run_inbox": "Process Inbox Folder Only",
@@ -1020,7 +1022,7 @@ with st.sidebar:
     pin_input = ""
     if cfg.demo_read_only:
         pin_input = st.text_input(
-            "Admin-PIN (Schreibschutz aktiv):",
+            T["pin_label"],
             type="password",
             help="Im öffentlichen Demo-Kontext sind Schreib- und Trigger-Funktionen gesperrt.",
         )
