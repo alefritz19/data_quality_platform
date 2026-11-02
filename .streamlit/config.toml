@@ -5,3 +5,8 @@ backgroundColor = "#FFFFFF"
 secondaryBackgroundColor = "#E8F2FC"
 textColor = "#2B3E54"
 font = "sans serif"
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = false
