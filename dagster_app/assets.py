@@ -18,33 +18,35 @@ from src.config import load_config
 from src.export_manager import cleanup_expired_exports
 from src.file_converter import process_inbox
 from src.final_gate import run_final_gate_all
-from src.ingest_source import fetch_smard_raw_data
+from src.ingest_source import fetch_all_public_sources
 from src.quality_checks import run_all_staging_quality_checks
 from src.report_generator import build_quality_report
 from src.staging_loader import stage_all_parquet_files
 
 
 @asset(group_name="data_quality_pipeline")
-def raw_public_sources(context: AssetExecutionContext) -> Output[Dict[str, object]]:
-    """Lädt reale Strommarktdaten von SMARD.de und stellt sie im Eingangsordner bereit."""
+def raw_public_sources(
+    context: AssetExecutionContext,
+) -> Output[List[Dict[str, object]]]:
+    """Lädt reale Strommarkt- (SMARD) und Wetterdaten (DWD) in den Eingangsordner."""
     cfg = load_config()
-    result = fetch_smard_raw_data(cfg)
-    raw_csv = Path(str(result["raw_csv_path"]))
+    results = fetch_all_public_sources(cfg)
+    total_rows = 0
+    for item in results:
+        raw_csv = Path(str(item["raw_csv_path"]))
+        inbox_copy = cfg.inbox_dir / raw_csv.name
+        shutil.copy2(str(raw_csv), str(inbox_copy))
+        total_rows += int(item["rows_fetched"])
+        context.log.info(
+            f"Quelle {item['source_id']} abgerufen ({item['rows_fetched']} Zeilen)."
+        )
 
-    # Kopie in den überwachten Eingangsordner legen, damit die universelle
-    # Parquet-Konvertierung (inkl. Größen- und Zeitmessung) durchlaufen wird
-    inbox_copy = cfg.inbox_dir / raw_csv.name
-    shutil.copy2(str(raw_csv), str(inbox_copy))
-
-    context.log.info(
-        f"Quelle {result['source_id']} abgerufen ({result['rows_fetched']} Zeilen)."
-    )
     return Output(
-        value=result,
+        value=results,
         metadata={
-            "source_id": str(result["source_id"]),
-            "rows_fetched": int(result["rows_fetched"]),
-            "file_size_bytes": int(result["file_size_bytes"]),
+            "sources_count": len(results),
+            "total_rows_fetched": total_rows,
+            "sources": MetadataValue.json(results),
         },
     )
 

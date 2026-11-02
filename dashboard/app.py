@@ -23,7 +23,7 @@ from src.database import get_connection, init_database
 from src.export_manager import create_export_package, get_export_storage_status
 from src.file_converter import process_inbox
 from src.final_gate import run_final_gate_all
-from src.ingest_source import fetch_smard_raw_data
+from src.ingest_source import fetch_all_public_sources
 from src.quality_checks import run_all_staging_quality_checks
 from src.report_generator import build_quality_report
 from src.staging_loader import stage_all_parquet_files
@@ -109,15 +109,16 @@ with st.sidebar:
         target_inbox_file.write_bytes(uploaded_file.getvalue())
         st.success(f"Datei '{uploaded_file.name}' in 'data/inbox' abgelegt.")
 
-    if st.button("Reale Quelle (SMARD) + Pipeline ausführen", use_container_width=True):
+    if st.button("Reale Quellen (SMARD + DWD) + Pipeline ausführen", use_container_width=True):
         if not is_authorized:
             st.error("Schreibschutz aktiv: Bitte gültige Admin-PIN eingeben.")
         else:
-            with st.spinner("Lade reale Daten, konvertiere nach Parquet und prüfe Qualität..."):
-                raw_info = fetch_smard_raw_data(cfg)
-                raw_csv = Path(str(raw_info["raw_csv_path"]))
-                inbox_copy = cfg.inbox_dir / raw_csv.name
-                inbox_copy.write_bytes(raw_csv.read_bytes())
+            with st.spinner("Lade reale Daten (SMARD + DWD), konvertiere nach Parquet und prüfe Qualität..."):
+                sources_list = fetch_all_public_sources(cfg)
+                for src_info in sources_list:
+                    raw_csv = Path(str(src_info["raw_csv_path"]))
+                    inbox_copy = cfg.inbox_dir / raw_csv.name
+                    inbox_copy.write_bytes(raw_csv.read_bytes())
                 process_inbox(cfg)
                 stage_all_parquet_files(cfg)
                 run_all_staging_quality_checks(stage="staging", config=cfg)

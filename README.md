@@ -46,13 +46,16 @@ data_quality_platform/
 * [x] **Schritt 9:** Regelbasierter Bericht mit konkreten Empfehlungen (`src/report_generator.py`)
 * [x] **Schritt 10:** Bereitstellung fertiger Daten (Download, TTL-Auto-Löschung und Speicherlimits)
 * [x] **Schritt 11:** Demo- und Prod-Kontur (`docker-compose.prod.yml`, `docker-compose.demo.yml`, Limits, Schreibschutz)
-* [ ] **Schritt 12:** Weitere reale Quellen hinzufügen
+* [x] **Schritt 12:** Weitere reale Quellen hinzufügen (Deutscher Wetterdienst / DWD Station 01420 Frankfurt/Main)
+* [ ] **Schritt 13:** Lernende Anomalieprüfung (zweite Stufe: Isolation Forest mit erklärbarer Begründung)
+* [ ] **Schritt 14:** Deployment auf Oracle-Server, README mit echten Zahlen
 
 ## Angebundene Datenquellen (`metadata.quellen`)
 
 | Kennung | Quelle | Lizenz | Gespeicherte Felder (`raw`) |
 | :--- | :--- | :--- | :--- |
 | `smard_de_hour` | Bundesnetzagentur \| SMARD.de – Strommarktdaten Deutschland | CC BY 4.0 | `timestamp_ms`, `datetime_utc`, `region`, `grid_load_mwh`, `solar_generation_mwh`, `wind_onshore_mwh` |
+| `dwd_station_01420` | Deutscher Wetterdienst (DWD) – Messstation 01420 Frankfurt am Main | GeoNutzV / CC BY 4.0 | `datetime_utc`, `dwd_station_id`, `temperature_c`, `wind_speed_kmh`, `solar_irradiation_kwh_m2`, `precipitation_mm`, `relative_humidity_pct`, `cloud_cover_pct` |
 
 ## Lizenz
 

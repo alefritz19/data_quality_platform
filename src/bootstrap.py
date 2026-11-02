@@ -14,7 +14,7 @@ from src.database import get_connection, init_database
 from src.export_manager import cleanup_expired_exports, create_export_package
 from src.file_converter import process_inbox
 from src.final_gate import run_final_gate_all
-from src.ingest_source import fetch_smard_raw_data
+from src.ingest_source import fetch_all_public_sources
 from src.quality_checks import run_all_staging_quality_checks
 from src.report_generator import build_quality_report
 from src.staging_loader import stage_all_parquet_files
@@ -25,11 +25,12 @@ def run_end_to_end_pipeline(config: Optional[AppConfig] = None) -> Dict[str, obj
     cfg = config or load_config()
     init_database(cfg)
 
-    # 1. Reale Datenquelle abrufen und in den Eingangsordner legen
-    raw_info = fetch_smard_raw_data(cfg)
-    raw_csv = Path(str(raw_info["raw_csv_path"]))
-    inbox_copy = cfg.inbox_dir / raw_csv.name
-    inbox_copy.write_bytes(raw_csv.read_bytes())
+    # 1. Reale Datenquellen (SMARD + DWD) abrufen und in den Eingangsordner legen
+    sources_info = fetch_all_public_sources(cfg)
+    for src_item in sources_info:
+        raw_csv = Path(str(src_item["raw_csv_path"]))
+        inbox_copy = cfg.inbox_dir / raw_csv.name
+        inbox_copy.write_bytes(raw_csv.read_bytes())
 
     # 2. Dateiannahme und Parquet-Konvertierung
     conversions = process_inbox(cfg)
@@ -56,7 +57,7 @@ def run_end_to_end_pipeline(config: Optional[AppConfig] = None) -> Dict[str, obj
     cleanup_expired_exports(cfg)
 
     return {
-        "source": raw_info,
+        "sources": sources_info,
         "conversions_count": len(conversions),
         "staged_tables_count": len(staged),
         "findings_count": len(findings),
