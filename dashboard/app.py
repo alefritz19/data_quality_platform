@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 Streamlit-Anwendung der Plattform für Datenqualität.
-Fokus auf 100 % Transparenz: Wählbare KPI-Karten, strukturierte Spalten- und
-Aggregations-Tabellen, Einzelzeilen-Filter für Lücken und Anomalien sowie
-kombinierte Diagramm-Tabellen-Ansichten auf geprüften 'mart'-Daten.
+Enthält eine obere Steuerleiste (Sprachwahl DE/EN und Farbschema Hell/Dunkel),
+wählbare KPI-Karten, strukturierte Transparenz- und Aggregationstabellen sowie
+immer sichtbare Linien-, Balken- und Kreisdiagramme auf geprüften 'mart'-Daten.
 """
 
 import sys
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -31,7 +31,7 @@ from src.report_generator import build_quality_report
 from src.staging_loader import stage_all_parquet_files
 
 TECHNICAL_ID_COLUMNS = {"timestamp_ms", "dwd_station_id", "row_index", "id"}
-CALM_BLUE_PALETTE = ["#2563EB", "#3B82F6", "#60A5FA", "#93C5FD", "#1D4ED8", "#7DD3FC"]
+CALM_BLUE_PALETTE = ["#4A86C5", "#6BA3D6", "#8BBCE3", "#A9D0EE", "#3B6E9C", "#78A8C8"]
 
 st.set_page_config(
     page_title="Plattform für Datenqualität | DuckDB · Parquet · Dagster",
@@ -39,116 +39,86 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Helles, klares Farbschema in Reinweiß, Himmelblau und klassischem Blau
-st.markdown(
-    """
-    <style>
-        /* Haupthintergrund: klares, reines Weiß */
-        .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-            background-color: #FFFFFF !important;
-            color: #1E293B !important;
-        }
-        /* Linke Seitenleiste: frisches, angenehmes Hellblau (ohne Grau-/Grünstich) */
-        [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {
-            background-color: #E2EEFF !important;
-            border-right: 1px solid #BFD7FF !important;
-        }
-        [data-testid="stSidebar"] h1,
-        [data-testid="stSidebar"] h2,
-        [data-testid="stSidebar"] h3,
-        [data-testid="stSidebar"] h4,
-        [data-testid="stSidebar"] label,
-        [data-testid="stSidebar"] .stMarkdown p {
-            color: #1E3A8A !important;
-        }
-        /* Überschriften im Hauptbereich in klarem Blau */
-        h1, h2, h3, h4 {
-            color: #1E3A8A !important;
-        }
-        /* KPI-Karten: hellblauer Rahmen auf zartblau-weißem Grund */
-        [data-testid="stMetric"] {
-            background-color: #F4F8FF !important;
-            border: 1px solid #C7DCFF !important;
-            border-radius: 8px !important;
-            padding: 12px 14px !important;
-        }
-        [data-testid="stMetricLabel"] {
-            color: #1E40AF !important;
-            font-weight: 600 !important;
-        }
-        [data-testid="stMetricValue"] {
-            color: #172554 !important;
-        }
-        /* KPI-Delta-Badges: klares Hellblau mit blauer Schrift statt Grün */
-        [data-testid="stMetricDelta"] {
-            background-color: #DBEAFE !important;
-            color: #1D4ED8 !important;
-            border-radius: 5px !important;
-            padding: 2px 6px !important;
-        }
-        [data-testid="stMetricDelta"] svg {
-            fill: #1D4ED8 !important;
-        }
-        /* Ausgewählte Tags (Multiselect) in klarem Blau mit weißer Schrift */
-        span[data-baseweb="tag"] {
-            background-color: #2563EB !important;
-            color: #FFFFFF !important;
-            border-radius: 5px !important;
-        }
-        span[data-baseweb="tag"] span, span[data-baseweb="tag"] svg {
-            color: #FFFFFF !important;
-            fill: #FFFFFF !important;
-        }
-        /* Auswahlfelder */
-        div[data-baseweb="select"] > div {
-            border-color: #BFDBFE !important;
-            background-color: #F8FBFF !important;
-        }
-        /* Alle Aktions-Buttons: angenehmes Blau mit reinweißer, gut lesbarer Schrift */
-        .stButton > button,
-        [data-testid="stSidebar"] .stButton > button {
-            background-color: #2563EB !important;
-            color: #FFFFFF !important;
-            border: 1px solid #1D4ED8 !important;
-            border-radius: 6px !important;
-            font-weight: 500 !important;
-        }
-        .stButton > button p,
-        .stButton > button span,
-        [data-testid="stSidebar"] .stButton > button p,
-        [data-testid="stSidebar"] .stButton > button span {
-            color: #FFFFFF !important;
-        }
-        .stButton > button:hover,
-        [data-testid="stSidebar"] .stButton > button:hover {
-            background-color: #1D4ED8 !important;
-            color: #FFFFFF !important;
-            border-color: #1E40AF !important;
-        }
-        /* Download-Buttons & Datei-Upload-Button in hellem Himmelblau mit dunkelblauer Schrift */
-        [data-testid="stDownloadButton"] > button,
-        [data-testid="stFileUploader"] button {
-            background-color: #EFF6FF !important;
-            color: #1E40AF !important;
-            border: 1px solid #93C5FD !important;
-            border-radius: 6px !important;
-        }
-        [data-testid="stDownloadButton"] > button p,
-        [data-testid="stDownloadButton"] > button span,
-        [data-testid="stFileUploader"] button p,
-        [data-testid="stFileUploader"] button span {
-            color: #1E40AF !important;
-        }
-        /* Info- und Statusboxen in reinem Hellblau */
-        [data-testid="stAlert"] {
-            background-color: #EFF6FF !important;
-            color: #1E3A8A !important;
-            border: 1px solid #BFDBFE !important;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# ── SPRACHWÖRTERBUCH (DEUTSCH / ENGLISCH) ────────────────────────────────────
+TEXTS: Dict[str, Dict[str, str]] = {
+    "DE": {
+        "app_title": "Transparente Plattform für Datenqualität",
+        "app_subtitle": (
+            "Ausschließliche Verarbeitung realer Datenquellen · Automatische Parquet-Konvertierung · "
+            "Mehrstufige Qualitätsprüfung · Wählbare KPI-Karten & Transparenz-Tabellen"
+        ),
+        "sidebar_title": "Plattform für Datenqualität",
+        "nav_label": "Ansicht wählen",
+        "nav_1": "1. Übersicht & Quellen",
+        "nav_2": "2. Qualitätsprüfungen (quality_log)",
+        "nav_3": "3. Nicht verarbeitbar",
+        "nav_4": "4. Freigegebene Daten: KPI-Karten, Tabellen & Diagramme",
+        "nav_5": "5. Regelbasierter Qualitätsbericht",
+        "nav_6": "6. Bereitstellung & Download fertiger Daten",
+        "intake_title": "Dateiannahme & Pipeline-Steuerung",
+        "upload_label": "Datei in Eingangsordner legen",
+        "btn_run_all": "Reale Quellen (SMARD + DWD) + Pipeline ausführen",
+        "btn_run_inbox": "Nur Eingangsordner (inbox) verarbeiten",
+        "kpi_sources": "Erfasste Quellen",
+        "kpi_parquet": "Parquet-Konvertierungen",
+        "kpi_mart": "Freigegebene Mart-Tabellen",
+        "kpi_issues": "Qualitätsbefunde (> 0)",
+        "kpi_unparseable": "Nicht verarbeitbar",
+        "top_lang": "Sprache / Language",
+        "top_theme": "Farbton / Theme",
+        "theme_light": "Hell (Weiß / Hellblau)",
+        "theme_dark": "Dunkel (Schieferblau)",
+        "sec1_1": "1. Dokumentierte Datenquellen (`metadata.quellen`)",
+        "sec1_2": "2. Dateiannahme & Parquet-Konvertierung (`metadata.file_conversions`)",
+        "sec1_3": "3. Abschließende Freigabeprüfung vor Visualisierung (`metadata.mart_gate_log`)",
+        "sec2_title": "Zweistufige Qualitätsprüfung: Regelwerk (Stufe 1) & Isolation Forest (Stufe 2)",
+        "sec3_title": "Abschnitt: Nicht verarbeitbar (Herkunft & Begründung)",
+        "sec4_title": "Freigegebene Daten (`mart`): Wählbare KPI-Karten, Transparenz-Tabellen & Diagramme",
+        "sec5_title": "Regelbasierter Qualitätsbericht mit nachvollziehbaren Empfehlungen",
+        "sec6_title": "Temporäre Bereitstellung fertiger Parquet-Daten & Berichte (`data/export`)",
+    },
+    "EN": {
+        "app_title": "Transparent Data Quality Platform",
+        "app_subtitle": (
+            "Real Public Data Sources Only · Automated Parquet Conversion · "
+            "Two-Stage Quality Verification · Selectable KPI Cards & Transparency Tables"
+        ),
+        "sidebar_title": "Data Quality Platform",
+        "nav_label": "Select View",
+        "nav_1": "1. Overview & Data Sources",
+        "nav_2": "2. Quality Checks (quality_log)",
+        "nav_3": "3. Unparseable Files & Values",
+        "nav_4": "4. Verified Mart Data: KPI Cards, Tables & Charts",
+        "nav_5": "5. Rule-Based Quality Report",
+        "nav_6": "6. Export & Download Ready Data",
+        "intake_title": "File Intake & Pipeline Control",
+        "upload_label": "Place file into inbox folder",
+        "btn_run_all": "Fetch Real Sources (SMARD + DWD) & Run Pipeline",
+        "btn_run_inbox": "Process Inbox Folder Only",
+        "kpi_sources": "Registered Sources",
+        "kpi_parquet": "Parquet Conversions",
+        "kpi_mart": "Verified Mart Tables",
+        "kpi_issues": "Quality Findings (> 0)",
+        "kpi_unparseable": "Unparseable Items",
+        "top_lang": "Language / Sprache",
+        "top_theme": "Theme / Farbton",
+        "theme_light": "Light (White / Sky Blue)",
+        "theme_dark": "Dark (Slate Blue)",
+        "sec1_1": "1. Documented Data Sources (`metadata.quellen`)",
+        "sec1_2": "2. File Intake & Parquet Conversion (`metadata.file_conversions`)",
+        "sec1_3": "3. Final Verification Gate Before Visualization (`metadata.mart_gate_log`)",
+        "sec2_title": "Two-Stage Quality Verification: Rules (Stage 1) & Isolation Forest (Stage 2)",
+        "sec3_title": "Section: Unparseable Items (Origin & Reason)",
+        "sec4_title": "Verified Data (`mart`): Selectable KPI Cards, Transparency Tables & Charts",
+        "sec5_title": "Rule-Based Quality Report with Traceable Recommendations",
+        "sec6_title": "Temporary Export & Download of Verified Parquet Data (`data/export`)",
+    },
+}
+
+if "ui_lang" not in st.session_state:
+    st.session_state["ui_lang"] = "DE"
+if "ui_theme" not in st.session_state:
+    st.session_state["ui_theme"] = "LIGHT"
 
 
 def fetch_dataframe(query: str, params: list = None) -> pd.DataFrame:
@@ -188,9 +158,7 @@ def build_column_transparency_table(
     df_ml_flags: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    Erzeugt den vollständigen Spalten-Steckbrief (Transparenz-Matrix) für eine Tabelle:
-    Datentyp, Gesamtzeilen, gültige Werte, fehlende Werte, Vollständigkeit (%),
-    Min, Median, Durchschnitt, Max, Summe sowie Anzahl der Qualitäts- und ML-Befunde.
+    Erzeugt den vollständigen Spalten-Steckbrief (Transparenz-Matrix) für eine Tabelle.
     """
     total_rows = len(df_mart)
     staging_name = f"staging.{table_name}"
@@ -250,7 +218,11 @@ def build_column_transparency_table(
                 "Rolle / Typ": (
                     "Technische ID"
                     if col.lower() in TECHNICAL_ID_COLUMNS
-                    else ("Zeitstempel" if "date" in col.lower() or "time" in col.lower() else ("Kennzahl (numerisch)" if is_num else "Text / Kategorie"))
+                    else (
+                        "Zeitstempel"
+                        if "date" in col.lower() or "time" in col.lower()
+                        else ("Kennzahl (numerisch)" if is_num else "Text / Kategorie")
+                    )
                 ),
                 "Gesamtzeilen": total_rows,
                 "Gültige Werte": valid_cnt,
@@ -272,26 +244,263 @@ def build_column_transparency_table(
 cfg = load_config()
 init_database(cfg)
 
+# ── OBERE STEUERLEISTE (WIE SEITENMENÜ: SPRACHE DE/EN & FARBTON HELL/DUNKEL) ─
+top_bar = st.container()
+with top_bar:
+    tb1, tb2, tb3 = st.columns([2.2, 1.0, 1.1])
+    with tb2:
+        lang_choice = st.radio(
+            "🌐 Sprache / Language",
+            options=["DE", "EN"],
+            index=0 if st.session_state["ui_lang"] == "DE" else 1,
+            horizontal=True,
+            key="lang_radio",
+        )
+        st.session_state["ui_lang"] = lang_choice
+    T = TEXTS[st.session_state["ui_lang"]]
+    with tb3:
+        theme_choice = st.radio(
+            f"🎨 {T['top_theme']}",
+            options=["LIGHT", "DARK"],
+            format_func=lambda x: T["theme_light"] if x == "LIGHT" else T["theme_dark"],
+            index=0 if st.session_state["ui_theme"] == "LIGHT" else 1,
+            horizontal=True,
+            key="theme_radio",
+        )
+        st.session_state["ui_theme"] = theme_choice
+    with tb1:
+        st.markdown(
+            f"**{T['sidebar_title']}** &nbsp;|&nbsp; "
+            f"Umgebung: `{cfg.app_env.upper()}` &nbsp;·&nbsp; "
+            f"Engine: `DuckDB + Parquet (ZSTD)` &nbsp;·&nbsp; "
+            f"Quellen: `SMARD.de & DWD 01420`"
+        )
+
+is_dark = st.session_state["ui_theme"] == "DARK"
+plotly_tpl = "plotly_dark" if is_dark else "plotly_white"
+chart_paper_bg = "#162234" if is_dark else "#FFFFFF"
+chart_plot_bg = "#1B2A40" if is_dark else "#F9FBFF"
+
+# ── ZWEI-FARBEN-DESIGN (HELL: WEISS/HELLBLAU | DUNKEL: SCHIEFERBLAU) ─────────
+if not is_dark:
+    st.markdown(
+        """
+        <style>
+            /* Haupthintergrund: klares Weiß */
+            .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+                background-color: #FFFFFF !important;
+                color: #2B3E54 !important;
+            }
+            /* Obere Steuerleiste optisch passend zum linken Menü */
+            div[data-testid="stVerticalBlock"] > div:first-child > div[data-testid="stVerticalBlockBorderWrapper"],
+            div[data-testid="stHorizontalBlock"]:first-of-type {
+                background-color: #E8F2FC !important;
+                border: 1px solid #CBE0F5 !important;
+                border-radius: 8px !important;
+                padding: 8px 14px !important;
+                margin-bottom: 10px !important;
+            }
+            /* Linke Seitenleiste: sanftes Hellblau */
+            [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {
+                background-color: #E8F2FC !important;
+                border-right: 1px solid #CBE0F5 !important;
+            }
+            [data-testid="stSidebar"] h1,
+            [data-testid="stSidebar"] h2,
+            [data-testid="stSidebar"] h3,
+            [data-testid="stSidebar"] h4,
+            [data-testid="stSidebar"] label,
+            [data-testid="stSidebar"] .stMarkdown p {
+                color: #2C4866 !important;
+            }
+            /* Überschriften: ruhiges, nicht übersättigtes Dunkelblau und nicht zu fett */
+            h1 {
+                color: #2C4866 !important;
+                font-weight: 500 !important;
+                letter-spacing: -0.2px !important;
+            }
+            h2, h3, h4 {
+                color: #325070 !important;
+                font-weight: 500 !important;
+            }
+            /* KPI-Karten */
+            [data-testid="stMetric"] {
+                background-color: #F6FAFF !important;
+                border: 1px solid #CFE2F7 !important;
+                border-radius: 8px !important;
+                padding: 12px 14px !important;
+            }
+            [data-testid="stMetricLabel"] {
+                color: #365678 !important;
+                font-weight: 500 !important;
+            }
+            [data-testid="stMetricValue"] {
+                color: #243B55 !important;
+                font-weight: 500 !important;
+            }
+            [data-testid="stMetricDelta"] {
+                background-color: #E3EFFB !important;
+                color: #35628C !important;
+                border-radius: 5px !important;
+                padding: 2px 6px !important;
+            }
+            [data-testid="stMetricDelta"] svg {
+                fill: #35628C !important;
+            }
+            /* Multiselect-Tags in sanftem Mittelblau statt Rot */
+            span[data-baseweb="tag"] {
+                background-color: #4A86C5 !important;
+                color: #FFFFFF !important;
+                border-radius: 5px !important;
+            }
+            span[data-baseweb="tag"] span, span[data-baseweb="tag"] svg {
+                color: #FFFFFF !important;
+                fill: #FFFFFF !important;
+            }
+            /* Auswahlfelder */
+            div[data-baseweb="select"] > div {
+                border-color: #C5DCF2 !important;
+                background-color: #F9FCFF !important;
+            }
+            /* Buttons: helleres, harmonisches Himmel-/Mittelblau (sticht nicht grell hervor) */
+            .stButton > button,
+            [data-testid="stSidebar"] .stButton > button {
+                background-color: #4A86C5 !important;
+                color: #FFFFFF !important;
+                border: 1px solid #3D73AD !important;
+                border-radius: 6px !important;
+                font-weight: 500 !important;
+            }
+            .stButton > button p,
+            .stButton > button span,
+            [data-testid="stSidebar"] .stButton > button p,
+            [data-testid="stSidebar"] .stButton > button span {
+                color: #FFFFFF !important;
+            }
+            .stButton > button:hover,
+            [data-testid="stSidebar"] .stButton > button:hover {
+                background-color: #3D73AD !important;
+                color: #FFFFFF !important;
+                border-color: #326091 !important;
+            }
+            [data-testid="stDownloadButton"] > button,
+            [data-testid="stFileUploader"] button {
+                background-color: #F0F7FF !important;
+                color: #2C4866 !important;
+                border: 1px solid #A8CBF0 !important;
+                border-radius: 6px !important;
+            }
+            [data-testid="stDownloadButton"] > button p,
+            [data-testid="stDownloadButton"] > button span,
+            [data-testid="stFileUploader"] button p,
+            [data-testid="stFileUploader"] button span {
+                color: #2C4866 !important;
+            }
+            [data-testid="stAlert"] {
+                background-color: #F2F8FF !important;
+                color: #2C4866 !important;
+                border: 1px solid #CBE0F5 !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+else:
+    st.markdown(
+        """
+        <style>
+            /* Dunkles Zweifarben-Schema: ruhiges Schieferblau & sanftes Eisblau */
+            .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+                background-color: #121D2B !important;
+                color: #DCE7F3 !important;
+            }
+            div[data-testid="stHorizontalBlock"]:first-of-type {
+                background-color: #19283B !important;
+                border: 1px solid #2A405C !important;
+                border-radius: 8px !important;
+                padding: 8px 14px !important;
+                margin-bottom: 10px !important;
+            }
+            [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {
+                background-color: #19283B !important;
+                border-right: 1px solid #2A405C !important;
+            }
+            [data-testid="stSidebar"] h1,
+            [data-testid="stSidebar"] h2,
+            [data-testid="stSidebar"] h3,
+            [data-testid="stSidebar"] h4,
+            [data-testid="stSidebar"] label,
+            [data-testid="stSidebar"] .stMarkdown p {
+                color: #DCE7F3 !important;
+            }
+            h1, h2, h3, h4 {
+                color: #DCE7F3 !important;
+                font-weight: 500 !important;
+            }
+            [data-testid="stMetric"] {
+                background-color: #19283B !important;
+                border: 1px solid #2C4463 !important;
+                border-radius: 8px !important;
+                padding: 12px 14px !important;
+            }
+            [data-testid="stMetricLabel"] {
+                color: #A8C2DE !important;
+                font-weight: 500 !important;
+            }
+            [data-testid="stMetricValue"] {
+                color: #ECF3FA !important;
+                font-weight: 500 !important;
+            }
+            [data-testid="stMetricDelta"] {
+                background-color: #223752 !important;
+                color: #9EC5EB !important;
+                border-radius: 5px !important;
+                padding: 2px 6px !important;
+            }
+            span[data-baseweb="tag"] {
+                background-color: #3D73AD !important;
+                color: #FFFFFF !important;
+                border-radius: 5px !important;
+            }
+            .stButton > button,
+            [data-testid="stSidebar"] .stButton > button {
+                background-color: #3D73AD !important;
+                color: #FFFFFF !important;
+                border: 1px solid #4E86C2 !important;
+                border-radius: 6px !important;
+                font-weight: 500 !important;
+            }
+            .stButton > button p,
+            .stButton > button span,
+            [data-testid="stSidebar"] .stButton > button p,
+            [data-testid="stSidebar"] .stButton > button span {
+                color: #FFFFFF !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
 # ── SEITENLEISTE: KONTEXT, NAVIGATION & GESCHÜTZTE AKTIONEN ──────────────────
 with st.sidebar:
-    st.markdown("### Plattform für Datenqualität")
+    st.markdown(f"### {T['sidebar_title']}")
     st.caption(f"Umgebung: `{cfg.app_env.upper()}` | Engine: `DuckDB + Parquet`")
     st.markdown("---")
 
     selected_section = st.radio(
-        "Ansicht wählen",
+        T["nav_label"],
         [
-            "1. Übersicht & Quellen",
-            "2. Qualitätsprüfungen (quality_log)",
-            "3. Nicht verarbeitbar",
-            "4. Freigegebene Daten: KPI-Karten, Tabellen & Diagramme",
-            "5. Regelbasierter Qualitätsbericht",
-            "6. Bereitstellung & Download fertiger Daten",
+            T["nav_1"],
+            T["nav_2"],
+            T["nav_3"],
+            T["nav_4"],
+            T["nav_5"],
+            T["nav_6"],
         ],
     )
 
     st.markdown("---")
-    st.markdown("#### Dateiannahme & Pipeline-Steuerung")
+    st.markdown(f"#### {T['intake_title']}")
 
     pin_input = ""
     if cfg.demo_read_only:
@@ -304,7 +513,7 @@ with st.sidebar:
     is_authorized = (not cfg.demo_read_only) or (pin_input == cfg.admin_pin)
 
     uploaded_file = st.file_uploader(
-        f"Datei in Eingangsordner legen (max. {cfg.max_upload_size_mb} MB)",
+        f"{T['upload_label']} (max. {cfg.max_upload_size_mb} MB)",
         type=["csv", "tsv", "xlsx", "xls", "json", "jsonl", "parquet"],
         disabled=not is_authorized,
     )
@@ -313,7 +522,7 @@ with st.sidebar:
         target_inbox_file.write_bytes(uploaded_file.getvalue())
         st.success(f"Datei '{uploaded_file.name}' in 'data/inbox' abgelegt.")
 
-    if st.button("Reale Quellen (SMARD + DWD) + Pipeline ausführen", use_container_width=True):
+    if st.button(T["btn_run_all"], use_container_width=True):
         if not is_authorized:
             st.error("Schreibschutz aktiv: Bitte gültige Admin-PIN eingeben.")
         else:
@@ -331,7 +540,7 @@ with st.sidebar:
                 build_quality_report(cfg)
                 st.success("Pipeline-Durchlauf und Freigabeprüfung abgeschlossen.")
 
-    if st.button("Nur Eingangsordner (inbox) verarbeiten", use_container_width=True):
+    if st.button(T["btn_run_inbox"], use_container_width=True):
         if not is_authorized:
             st.error("Schreibschutz aktiv: Bitte gültige Admin-PIN eingeben.")
         else:
@@ -390,27 +599,24 @@ avg_duration_ms = (
 unparseable_total = len(df_unparseable_files) + len(df_unparseable_rows)
 
 # ── GLOBALE SYSTEM-KPI-KARTEN ────────────────────────────────────────────────
-st.title("Transparente Plattform für Datenqualität")
-st.caption(
-    "Ausschließliche Verarbeitung realer Datenquellen · Automatische Parquet-Konvertierung · "
-    "Mehrstufige Qualitätsprüfung · Wählbare KPI-Karten & Transparenz-Tabellen"
-)
+st.title(T["app_title"])
+st.caption(T["app_subtitle"])
 
 k1, k2, k3, k4, k5 = st.columns(5)
-k1.metric("Erfasste Quellen", f"{len(df_sources)}")
+k1.metric(T["kpi_sources"], f"{len(df_sources)}")
 k2.metric(
-    "Parquet-Konvertierungen",
+    T["kpi_parquet"],
     f"{len(df_conversions)}",
     f"Ø {avg_compression:.1f} % kleiner ({avg_duration_ms:.0f} ms)",
 )
-k3.metric("Freigegebene Mart-Tabellen", f"{len(mart_tables)}")
+k3.metric(T["kpi_mart"], f"{len(mart_tables)}")
 k4.metric(
-    "Qualitätsbefunde (> 0)",
+    T["kpi_issues"],
     f"{len(issues_df)}",
     f"davon {prio_issues_count} priorisiert",
 )
 k5.metric(
-    "Nicht verarbeitbar",
+    T["kpi_unparseable"],
     f"{unparseable_total}",
     f"{len(df_unparseable_files)} Dateien / {len(df_unparseable_rows)} Werte",
 )
@@ -422,13 +628,13 @@ st.markdown("---")
 # ANSICHT 1: ÜBERSICHT, QUELLEN & PARQUET-KONVERTIERUNG
 # ══════════════════════════════════════════════════════════════════════════════
 if selected_section.startswith("1."):
-    st.subheader("1. Dokumentierte Datenquellen (`metadata.quellen`)")
+    st.subheader(T["sec1_1"])
     if df_sources.empty:
         st.info("Noch keine Datenquellen protokolliert.")
     else:
         st.dataframe(df_sources, use_container_width=True, hide_index=True)
 
-    st.subheader("2. Dateiannahme & Parquet-Konvertierung (`metadata.file_conversions`)")
+    st.subheader(T["sec1_2"])
     if df_conversions.empty:
         st.info("Noch keine Parquet-Konvertierungen durchgeführt.")
     else:
@@ -451,7 +657,7 @@ if selected_section.startswith("1."):
             hide_index=True,
         )
 
-    st.subheader("3. Abschließende Freigabeprüfung vor Visualisierung (`metadata.mart_gate_log`)")
+    st.subheader(T["sec1_3"])
     if df_gate.empty:
         st.info("Noch keine Freigabeprüfung protokolliert.")
     else:
@@ -462,12 +668,11 @@ if selected_section.startswith("1."):
 # ANSICHT 2: QUALITÄTSPRÜFUNGEN (QUALITY_LOG & ISOLATION FOREST)
 # ══════════════════════════════════════════════════════════════════════════════
 elif selected_section.startswith("2."):
-    st.subheader("Zweistufige Qualitätsprüfung: Regelwerk (Stufe 1) & Isolation Forest (Stufe 2)")
+    st.subheader(T["sec2_title"])
 
     if df_quality.empty:
         st.info("Noch keine Qualitätsprüfungen vorhanden.")
     else:
-        # KPI-Karten für die Qualitätsprüfung
         stage1_hits = int(
             (
                 (df_quality["stage"] == "final_gate")
@@ -578,7 +783,6 @@ elif selected_section.startswith("2."):
             hide_index=True,
         )
 
-        # Wählbares Diagramm für Qualitätsbefunde (Balken-, Linien-, Kreisdiagramm)
         q_chart_choice = st.selectbox(
             "Qualitätsdiagramm wählen:",
             [
@@ -601,10 +805,10 @@ elif selected_section.startswith("2."):
                 orientation="h",
                 title="Anzahl betroffener Einträge je Qualitätsregel",
                 labels={"affected_count": "Anzahl Befunde", "rule_name": "Regel"},
-                template="plotly_white",
+                template=plotly_tpl,
                 color_discrete_sequence=CALM_BLUE_PALETTE,
             )
-            fig_q.update_layout(height=340, paper_bgcolor="#FFFFFF", plot_bgcolor="#FAFCFF")
+            fig_q.update_layout(height=340, paper_bgcolor=chart_paper_bg, plot_bgcolor=chart_plot_bg)
             st.plotly_chart(fig_q, use_container_width=True)
         elif not filtered.empty and q_chart_choice.startswith("Liniendiagramm"):
             agg_line = (
@@ -619,10 +823,10 @@ elif selected_section.startswith("2."):
                 markers=True,
                 title="Maximaler Anteil betroffener Zeilen (%) je Spalte",
                 labels={"column_name": "Spalte", "share_pct": "Anteil (%)"},
-                template="plotly_white",
+                template=plotly_tpl,
                 color_discrete_sequence=CALM_BLUE_PALETTE,
             )
-            fig_q.update_layout(height=340, paper_bgcolor="#FFFFFF", plot_bgcolor="#FAFCFF")
+            fig_q.update_layout(height=340, paper_bgcolor=chart_paper_bg, plot_bgcolor=chart_plot_bg)
             st.plotly_chart(fig_q, use_container_width=True)
         elif not filtered.empty and q_chart_choice.startswith("Kreisdiagramm"):
             agg_col = (
@@ -634,10 +838,10 @@ elif selected_section.startswith("2."):
                 names="column_name",
                 values="affected_count",
                 title="Anteil der Qualitätsbefunde nach Spalte",
-                template="plotly_white",
+                template=plotly_tpl,
                 color_discrete_sequence=CALM_BLUE_PALETTE,
             )
-            fig_q.update_layout(height=340, paper_bgcolor="#FFFFFF")
+            fig_q.update_layout(height=340, paper_bgcolor=chart_paper_bg)
             st.plotly_chart(fig_q, use_container_width=True)
 
         st.markdown("---")
@@ -681,7 +885,7 @@ elif selected_section.startswith("2."):
 # ANSICHT 3: ABSCHNITT 'NICHT VERARBEITBAR'
 # ══════════════════════════════════════════════════════════════════════════════
 elif selected_section.startswith("3."):
-    st.subheader("Abschnitt: Nicht verarbeitbar (Herkunft & Begründung)")
+    st.subheader(T["sec3_title"])
     st.write(
         "Daten oder Dateien, die nicht konvertiert oder berechnet werden konnten, "
         "werden hier vollständig mit Quelle, Spalte und Fehlerursache ausgewiesen."
@@ -704,7 +908,7 @@ elif selected_section.startswith("3."):
 # ANSICHT 4: FREIGEGEBENE MART-DATEN — KPI-AUSWAHL, TABELLEN & DIAGRAMME
 # ══════════════════════════════════════════════════════════════════════════════
 elif selected_section.startswith("4."):
-    st.subheader("Freigegebene Daten (`mart`): Wählbare KPI-Karten, Transparenz-Tabellen & Diagramme")
+    st.subheader(T["sec4_title"])
 
     if not mart_tables:
         st.warning(
@@ -818,7 +1022,6 @@ elif selected_section.startswith("4."):
             df_mart_full, chosen_table, df_quality, df_ml_flags_all
         )
 
-        # MODUS 1: SPALTEN-STECKBRIEF & TRANSPARENZ-MATRIX
         if view_mode.startswith("1."):
             st.markdown(
                 "#### B. Spalten-Steckbrief & Transparenz-Matrix (vollständige Kennzahlen- und Qualitätsübersicht je Spalte)"
@@ -832,7 +1035,6 @@ elif selected_section.startswith("4."):
             st.markdown("#### C. Vorschau der freigegebenen Datentabelle (`mart." + chosen_table + "`)")
             st.dataframe(df_mart_full.head(100), use_container_width=True, hide_index=True)
 
-        # MODUS 2: AGGREGIERTE AUSWERTUNGSTABELLE (TAGES- / GRUPPEN-KENNZAHLEN)
         elif view_mode.startswith("2."):
             st.markdown("#### B. Aggregierte Kennzahlen-Tabelle (Tages- oder Kategorien-Übersicht)")
             time_cols = [
@@ -887,7 +1089,6 @@ elif selected_section.startswith("4."):
 
             st.dataframe(grouped_table, use_container_width=True, hide_index=True)
 
-        # MODUS 3: EINZELZEILEN-INSPEKTOR (MIT TRANSPARENZ-FILTER FÜR LÜCKEN & ANOMALIEN)
         elif view_mode.startswith("3."):
             st.markdown(
                 "#### B. Einzelzeilen-Inspektor mit Transparenz-Filter (Lücken, Ausreißer & ML-Markierungen)"
@@ -947,7 +1148,6 @@ elif selected_section.startswith("4."):
                 hide_index=True,
             )
 
-        # MODUS 4: KOMBINIERTE ANSICHT (AGGREGIERTE TABELLE + PASSENDES DIAGRAMM NEBENEINANDER)
         elif view_mode.startswith("4."):
             st.markdown(
                 "#### B. Kombinierte Ansicht: Aggregierte Datentabelle + Diagramm nebeneinander"
@@ -991,10 +1191,10 @@ elif selected_section.startswith("4."):
                     y=["Minimum", "Durchschnitt", "Maximum"],
                     markers=True,
                     title=f"Tages-Korridor (Min / Ø / Max): {comb_metric}",
-                    template="plotly_white",
+                    template=plotly_tpl,
                     color_discrete_sequence=CALM_BLUE_PALETTE,
                 )
-                fig_comb.update_layout(height=380, paper_bgcolor="#FFFFFF", plot_bgcolor="#FAFCFF")
+                fig_comb.update_layout(height=380, paper_bgcolor=chart_paper_bg, plot_bgcolor=chart_plot_bg)
                 st.plotly_chart(fig_comb, use_container_width=True)
 
         # ── TEIL C: IMMER SICHTBARES, WÄHLBARES DIAGRAMM (LINIE, BALKEN, KREIS) ─
@@ -1074,10 +1274,10 @@ elif selected_section.startswith("4."):
                         markers=True,
                         title=f"Liniendiagramm: {y_col} nach {x_plot} ({title_suffix} · mart.{chosen_table})",
                         labels={x_plot: x_plot, y_plot: y_col},
-                        template="plotly_white",
+                        template=plotly_tpl,
                         color_discrete_sequence=CALM_BLUE_PALETTE,
                     )
-                    fig_m.update_layout(height=400, paper_bgcolor="#FFFFFF", plot_bgcolor="#FAFCFF")
+                    fig_m.update_layout(height=400, paper_bgcolor=chart_paper_bg, plot_bgcolor=chart_plot_bg)
                     st.plotly_chart(fig_m, use_container_width=True)
 
                 elif plot_type == "Balkendiagramm":
@@ -1088,14 +1288,13 @@ elif selected_section.startswith("4."):
                         text_auto=".2f" if len(plot_data) <= 35 else False,
                         title=f"Balkendiagramm: {y_col} nach {x_plot} ({title_suffix} · mart.{chosen_table})",
                         labels={x_plot: x_plot, y_plot: y_col},
-                        template="plotly_white",
+                        template=plotly_tpl,
                         color_discrete_sequence=CALM_BLUE_PALETTE,
                     )
-                    fig_m.update_layout(height=400, paper_bgcolor="#FFFFFF", plot_bgcolor="#FAFCFF")
+                    fig_m.update_layout(height=400, paper_bgcolor=chart_paper_bg, plot_bgcolor=chart_plot_bg)
                     st.plotly_chart(fig_m, use_container_width=True)
 
                 elif plot_type == "Kreisdiagramm":
-                    # Wenn X-Achse zu viele Einzelwerte hat (z. B. Zeitstempel), automatisch in 4 transparente Wertebereiche + Lücken gruppieren
                     unique_x = chart_df[x_col].nunique(dropna=True)
                     if is_time_x or unique_x > 12:
                         valid_vals = chart_df["_y_num_"].dropna()
@@ -1122,10 +1321,10 @@ elif selected_section.startswith("4."):
                                 values="Anzahl_Stunden",
                                 hole=0.3,
                                 title=f"Kreisdiagramm: Verteilung von '{y_col}' nach Wertebereichen & Lücken (mart.{chosen_table})",
-                                template="plotly_white",
+                                template=plotly_tpl,
                                 color_discrete_sequence=CALM_BLUE_PALETTE,
                             )
-                            fig_m.update_layout(height=420, paper_bgcolor="#FFFFFF")
+                            fig_m.update_layout(height=420, paper_bgcolor=chart_paper_bg)
                             st.plotly_chart(fig_m, use_container_width=True)
                         else:
                             st.info("Keine gültigen Zahlenwerte für Kreisdiagramm vorhanden.")
@@ -1141,10 +1340,10 @@ elif selected_section.startswith("4."):
                             values=y_col,
                             hole=0.3,
                             title=f"Kreisdiagramm: Anteile von '{y_col}' nach '{x_col}' (mart.{chosen_table})",
-                            template="plotly_white",
+                            template=plotly_tpl,
                             color_discrete_sequence=CALM_BLUE_PALETTE,
                         )
-                        fig_m.update_layout(height=420, paper_bgcolor="#FFFFFF")
+                        fig_m.update_layout(height=420, paper_bgcolor=chart_paper_bg)
                         st.plotly_chart(fig_m, use_container_width=True)
 
 
@@ -1152,7 +1351,7 @@ elif selected_section.startswith("4."):
 # ANSICHT 5: REGELBASIERTER QUALITÄTSBERICHT (OHNE KI)
 # ══════════════════════════════════════════════════════════════════════════════
 elif selected_section.startswith("5."):
-    st.subheader("Regelbasierter Qualitätsbericht mit nachvollziehbaren Empfehlungen")
+    st.subheader(T["sec5_title"])
     rep = build_quality_report(cfg)
     st.markdown(str(rep["markdown"]))
 
@@ -1161,7 +1360,7 @@ elif selected_section.startswith("5."):
 # ANSICHT 6: BEREITSTELLUNG & DOWNLOAD FERTIGER DATEN
 # ══════════════════════════════════════════════════════════════════════════════
 elif selected_section.startswith("6."):
-    st.subheader("Temporäre Bereitstellung fertiger Parquet-Daten & Berichte (`data/export`)")
+    st.subheader(T["sec6_title"])
     export_status = get_export_storage_status(cfg)
 
     e1, e2, e3 = st.columns(3)
