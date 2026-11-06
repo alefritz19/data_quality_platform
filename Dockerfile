@@ -17,7 +17,7 @@ COPY src /app/src
 COPY dagster_app /app/dagster_app
 COPY dashboard /app/dashboard
 COPY config /app/config
-COPY README.md CLAUDE.md LICENSE /app/
+COPY README.md ARCHITECTURE.md LICENSE /app/
 
 RUN mkdir -p /app/data/inbox /app/data/raw /app/data/staging \
     /app/data/mart /app/data/export /app/data/rejected /app/logs

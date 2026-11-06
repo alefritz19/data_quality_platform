@@ -1,4 +1,4 @@
-# Projektregeln und Architektur (CLAUDE.md)
+# Projektregeln und Architektur (ARCHITECTURE.md)
 
 ## 1. Ziel des Projekts
 Transparente Plattform für Datenqualität auf Basis ausschließlich realer, öffentlicher Datenquellen (keine synthetischen Daten). Die Plattform lädt Rohdaten, konvertiert Dateien nach Parquet, profiliert sie, findet Qualitätsprobleme und Anomalien, führt eine abschließende Prüfung vor der Visualisierung durch und erzeugt einen nachvollziehbaren Bericht mit Empfehlungen.
@@ -30,7 +30,7 @@ Kernprinzip: **Transparenz** – für jedes Problem ist klar dokumentiert, aus w
 * **Demo (`demo`):** `docker-compose.demo.yml`, `.env.demo`, fester Ausschnitt realer Daten, öffentlich lesbar, Schreibschutz aktiv (`DEMO_READ_ONLY=true`), Aufbewahrung: **24 Stunden**, Limit: **500 MB** (max. 20 MB pro Datei), feste CPU-/RAM-Limits.
 
 ## 5. Reihenfolge der Umsetzung (14 Schritte)
-1. Projektgerüst, Git, `.gitignore`, `.env.example`, `CLAUDE.md` (Abgeschlossen)
+1. Projektgerüst, Git, `.gitignore`, `.env.example`, `ARCHITECTURE.md` (Abgeschlossen)
 2. Eine einzige reale Quelle anbinden (`raw`, inkl. Quellentabelle)
 3. Dateiannahme: Eingangsordner (`inbox`), Konvertierung nach Parquet, Chunking
 4. Staging mit DuckDB (`staging`)
